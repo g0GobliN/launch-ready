@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect package manager
+        id: pm
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "name=pnpm"                                    >> $GITHUB_OUTPUT
+            echo "install=pnpm install --frozen-lockfile"       >> $GITHUB_OUTPUT
+            echo "run=pnpm run"                                 >> $GITHUB_OUTPUT
+          elif [ -f yarn.lock ]; then
+            echo "name=yarn"                                    >> $GITHUB_OUTPUT
+            echo "install=yarn install --frozen-lockfile"       >> $GITHUB_OUTPUT
+            echo "run=yarn"                                     >> $GITHUB_OUTPUT
+          else
+            echo "name=npm"                                     >> $GITHUB_OUTPUT
+            echo "install=npm ci"                               >> $GITHUB_OUTPUT
+            echo "run=npm run"                                  >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup pnpm
+        if: steps.pm.outputs.name == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ${{ steps.pm.outputs.name }}
+
+      - name: Install dependencies
+        run: ${{ steps.pm.outputs.install }}
+
+      - name: Check scripts
+        id: scripts
+        run: |
+          has() { node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)"; }
+          has lint  && echo "lint=true"  >> $GITHUB_OUTPUT || echo "lint=false"  >> $GITHUB_OUTPUT
+          has test  && echo "test=true"  >> $GITHUB_OUTPUT || echo "test=false"  >> $GITHUB_OUTPUT
+          has build && echo "build=true" >> $GITHUB_OUTPUT || echo "build=false" >> $GITHUB_OUTPUT
+
+      - name: Lint
+        if: steps.scripts.outputs.lint == 'true'
+        run: ${{ steps.pm.outputs.run }} lint
+
+      - name: Test
+        if: steps.scripts.outputs.test == 'true'
+        run: ${{ steps.pm.outputs.run }} test
+
+      - name: Build
+        if: steps.scripts.outputs.build == 'true'
+        run: ${{ steps.pm.outputs.run }} build

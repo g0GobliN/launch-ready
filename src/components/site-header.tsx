@@ -24,6 +24,7 @@ export function SiteHeader() {
         ) : (
           <nav className="flex items-center gap-5 text-sm text-muted-foreground">
             <Link to="/dashboard" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Dashboard</Link>
+            <Link to="/pricing" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Pricing</Link>
           </nav>
         )}
         <div className="flex items-center gap-2">

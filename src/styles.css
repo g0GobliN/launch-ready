@@ -108,3 +108,30 @@
   background-clip: text;
   color: transparent;
 }
+
+@keyframes progress {
+  0%   { width: 5%;   margin-left: 0; }
+  50%  { width: 60%;  margin-left: 20%; }
+  100% { width: 5%;   margin-left: 95%; }
+}
+
+/* Global press feedback — every button and link gets a tactile scale-down on click */
+@layer base {
+  button:not(:disabled),
+  a[href],
+  label[for],
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled):active,
+  a[href]:active,
+  [role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 60ms ease-out;
+  }
+  button,
+  a[href],
+  [role="button"] {
+    transition: transform 120ms ease-out, opacity 120ms ease-out;
+  }
+}

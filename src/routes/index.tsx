@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
-import { ArrowRight, CheckCircle2, GitPullRequest, Github, Shield, TestTube2, Workflow, FileCode2, Boxes, Activity, Sparkles, Zap, Clock } from "lucide-react";
+import { ArrowRight, CheckCircle2, GitPullRequest, GithubIcon, Shield, TestTube2, Workflow, FileCode2, Boxes, Activity, Sparkles, Zap, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -50,7 +50,7 @@ function Hero() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground glow-primary transition hover:opacity-90">
-              <Github className="h-4 w-4" /> Connect GitHub
+              <GithubIcon className="h-4 w-4" /> Connect GitHub
             </Link>
             <a href="#how" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
               View Demo <ArrowRight className="h-4 w-4" />
@@ -137,7 +137,7 @@ function Problem() {
 
 function HowItWorks() {
   const steps = [
-    { i: <Github className="h-5 w-5" />, t: "Connect GitHub", d: "One-click OAuth. We only read your repos — no surprise commits." },
+    { i: <GithubIcon className="h-5 w-5" />, t: "Connect GitHub", d: "One-click OAuth. We only read your repos — no surprise commits." },
     { i: <Activity className="h-5 w-5" />, t: "Scan repo", d: "We analyze your stack and produce a 0–100 readiness score." },
     { i: <CheckCircle2 className="h-5 w-5" />, t: "Pick fixes", d: "Choose what to add: Vitest, CI, Docker, monitoring, and more." },
     { i: <GitPullRequest className="h-5 w-5" />, t: "Get a PR", d: "A clean pull request lands on a new branch. Review and merge." },
@@ -284,7 +284,7 @@ function CTA() {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-            <Github className="h-4 w-4" /> Connect GitHub
+            <GithubIcon className="h-4 w-4" /> Connect GitHub
           </Link>
           <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
             <Zap className="h-4 w-4" /> Try the demo

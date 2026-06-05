@@ -1,3 +1,9 @@
+// Node 20 has no native WebSocket — polyfill before any module uses it.
+import ws from "ws";
+if (!globalThis.WebSocket) {
+  (globalThis as unknown as Record<string, unknown>).WebSocket = ws;
+}
+
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";

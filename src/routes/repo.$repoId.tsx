@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
-import { MOCK_REPOS, MOCK_SCANS } from "@/lib/mock-data";
+import { getRepoFn, getScanFn } from "@/lib/api/db.functions";
 import { ScoreRing, SeverityBadge } from "@/components/ui-bits";
-import { ArrowRight, Clock, Github } from "lucide-react";
+import { ArrowRight, BrainCircuit, Clock, Github } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId")({
@@ -10,15 +10,39 @@ export const Route = createFileRoute("/repo/$repoId")({
   component: RepoPage,
   notFoundComponent: () => <div className="p-10 text-center">Repo not found.</div>,
   errorComponent: ({ error }) => <div className="p-10 text-center text-critical">{error.message}</div>,
-  loader: ({ params }) => {
-    const repo = MOCK_REPOS.find((r) => r.id === params.repoId);
+  loader: async ({ params }) => {
+    const [repo, scan] = await Promise.all([getRepoFn({ data: { repoId: params.repoId } }), getScanFn({ data: { repoId: params.repoId } })]);
     if (!repo) throw notFound();
-    return { repo, scan: MOCK_SCANS[repo.id] };
+    return { repo, scan };
   },
 });
 
 function RepoPage() {
-  const { repo, scan } = Route.useLoaderData();
+  const { repo, scan } = Route.useLoaderData() as {
+    repo: NonNullable<Awaited<ReturnType<typeof getRepoFn>>>;
+    scan: Awaited<ReturnType<typeof getScanFn>>;
+  };
+
+  if (!scan) {
+    return (
+      <div className="min-h-screen">
+        <SiteHeader />
+        <div className="mx-auto flex max-w-lg flex-col items-center px-6 pt-32 text-center">
+          <h1 className="font-display text-2xl font-semibold">No scan yet</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Go back to the dashboard and click <strong>Analyze</strong> on{" "}
+            <span className="font-mono">{repo.full_name}</span>.
+          </p>
+          <Link
+            to="/dashboard"
+            className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const categories = useMemo(() => {
@@ -64,6 +88,16 @@ function RepoPage() {
             <div className="mt-6 rounded-lg border border-border bg-surface p-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> {repo.full_name}</div>
             </div>
+            <Link
+              to="/repo/$repoId/arch"
+              params={{ repoId: repo.id }}
+              className="mt-3 flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 text-xs hover:bg-muted transition"
+            >
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <BrainCircuit className="h-3.5 w-3.5 text-accent" /> Architecture analysis
+              </span>
+              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
           </div>
 
           <div>

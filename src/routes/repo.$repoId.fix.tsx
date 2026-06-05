@@ -1,8 +1,14 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
-import { FIX_DETAILS, MOCK_REPOS, MOCK_SCANS, type FileDiff } from "@/lib/mock-data";
+import { FIX_DETAILS, type FileDiff } from "@/lib/mock-data";
+import { getRepoFn, getScanFn } from "@/lib/api/db.functions";
+import { createFixRequest } from "@/lib/api/github.functions";
+import { getUserPlanFn } from "@/lib/api/credits.functions";
+import { UpgradeModal } from "@/components/upgrade-modal";
 import { DiffView } from "@/components/diff-view";
-import { ArrowLeft, FileEdit, FilePlus2, GitBranch, GitPullRequest, Package, ShieldCheck, Beaker } from "lucide-react";
+import { AI_FIX_COSTS } from "@/lib/plans";
+import { AI_FIX_IDS } from "@/lib/ai-tests.server";
+import { ArrowLeft, Coins, FileEdit, FilePlus2, GitBranch, GitPullRequest, Package, ShieldCheck, Beaker, Lock } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId/fix")({
@@ -11,26 +17,35 @@ export const Route = createFileRoute("/repo/$repoId/fix")({
   component: FixPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
   errorComponent: ({ error }) => <div className="p-10 text-center text-critical">{error.message}</div>,
-  loader: ({ params }) => {
-    const repo = MOCK_REPOS.find((r) => r.id === params.repoId);
-    if (!repo) throw notFound();
-    return { repo, scan: MOCK_SCANS[repo.id] };
+  loader: async ({ params }) => {
+    const [repo, scan, planData] = await Promise.all([
+      getRepoFn({ data: { repoId: params.repoId } }),
+      getScanFn({ data: { repoId: params.repoId } }),
+      getUserPlanFn().catch(() => null),
+    ]);
+    if (!repo || !scan) throw notFound();
+    return { repo, scan, planData };
   },
 });
 
 function FixPage() {
-  const { repo } = Route.useLoaderData();
+  const { repo, scan, planData } = Route.useLoaderData();
   const { fixes } = Route.useSearch();
   const navigate = Route.useNavigate();
+  const currentPlan = planData?.plan ?? "free";
+  const canUseAiFixes = currentPlan !== "free";
   const initial = fixes ? fixes.split(",").filter(Boolean) : Object.keys(FIX_DETAILS).slice(0, 4);
   const [selected, setSelected] = useState<string[]>(initial);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [upgradeModal, setUpgradeModal] = useState<"ai-fixes" | "credits" | null>(null);
 
   const preview = useMemo(() => {
     const added = new Set<string>();
     const changed = new Set<string>();
     const deps = new Set<string>();
     const diffs: FileDiff[] = [];
+    let credits = 0;
     selected.forEach((id) => {
       const f = FIX_DETAILS[id];
       if (!f) return;
@@ -38,24 +53,44 @@ function FixPage() {
       f.files_changed.forEach((x) => changed.add(x));
       f.deps.forEach((x) => deps.add(x));
       f.diffs.forEach((d) => diffs.push(d));
+      credits += AI_FIX_IDS.has(id) ? (AI_FIX_COSTS[id] ?? 0) : 0;
     });
-    return { added: [...added], changed: [...changed], deps: [...deps], diffs };
+    return { added: [...added], changed: [...changed], deps: [...deps], diffs, credits };
   }, [selected]);
 
   const branchName = `launchready/production-ready-${new Date().toISOString().slice(0, 10)}`;
 
   const submit = async () => {
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    navigate({
-      to: "/pr/$repoId",
-      params: { repoId: repo.id },
-      search: { fixes: selected.join(",") },
-    });
+    setSubmitError(null);
+    try {
+      const { jobId } = await createFixRequest({
+        data: {
+          repoId: repo.id,
+          scanId: scan.id,
+          fixes: selected.join(","),
+          branchName,
+          estFilesAdded: preview.added.length,
+          estFilesChanged: preview.changed.length,
+          estDeps: preview.deps.length,
+          creditsCost: preview.credits,
+        },
+      });
+      navigate({ to: "/repo/$repoId/job/$jobId", params: { repoId: repo.id, jobId } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to create job. Please try again.";
+      if (msg.includes("Insufficient AI credits")) { setUpgradeModal("credits"); }
+      else { setSubmitError(msg); }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen">
+      {upgradeModal && (
+        <UpgradeModal open onClose={() => setUpgradeModal(null)} reason={upgradeModal} currentPlan={currentPlan} />
+      )}
       <SiteHeader />
       <div className="mx-auto max-w-7xl px-6 py-10">
         <Link to="/repo/$repoId" params={{ repoId: repo.id }} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -86,18 +121,36 @@ function FixPage() {
             <h3 className="font-display text-sm font-semibold">Fixes ({selected.length})</h3>
             <div className="mt-3 space-y-2">
               {Object.entries(FIX_DETAILS).map(([id, f]) => {
+                const isAiFix = AI_FIX_IDS.has(id);
+                const isLocked = isAiFix && !canUseAiFixes;
                 const isSel = selected.includes(id);
+                const fixCost = isAiFix ? (AI_FIX_COSTS[id] ?? 0) : 0;
                 return (
-                  <label key={id} className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={isSel}
-                      onChange={() =>
-                        setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
-                      }
-                      className="h-4 w-4 accent-[color:var(--color-primary)]"
-                    />
-                    <span>{f.label}</span>
+                  <label
+                    key={id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm ${isLocked ? "opacity-60" : ""}`}
+                    onClick={isLocked ? (e) => { e.preventDefault(); setUpgradeModal("ai-fixes"); } : undefined}
+                  >
+                    {isLocked ? (
+                      <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <input
+                        type="checkbox"
+                        checked={isSel}
+                        onChange={() =>
+                          setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+                        }
+                        className="h-4 w-4 accent-[color:var(--color-primary)]"
+                      />
+                    )}
+                    <span className="flex-1">{f.label}</span>
+                    {isAiFix ? (
+                      <span className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : "bg-accent/10 text-accent"}`}>
+                        <Coins className="h-2.5 w-2.5" />{fixCost}cr
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-success font-medium">Free</span>
+                    )}
                   </label>
                 );
               })}
@@ -134,9 +187,25 @@ function FixPage() {
             </div>
 
 
+            {submitError && (
+              <div className="rounded-md border border-critical/30 bg-critical/10 px-4 py-2.5 text-sm text-critical">
+                {submitError}
+              </div>
+            )}
             <div className="sticky bottom-4 flex items-center justify-between rounded-xl border border-primary/30 bg-card/90 p-4 backdrop-blur glow-primary">
-              <div className="text-sm text-muted-foreground">
-                {preview.added.length} added · {preview.changed.length} changed · {preview.deps.length} deps
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-muted-foreground">
+                  {preview.added.length} added · {preview.changed.length} changed · {preview.deps.length} deps
+                </div>
+                <div className="hidden items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-xs sm:flex">
+                  <Coins className="h-3 w-3 text-primary" />
+                  {preview.credits === 0 ? (
+                    <span className="text-success font-medium">Free</span>
+                  ) : (
+                    <span className="font-medium">{preview.credits} credit{preview.credits !== 1 ? "s" : ""}</span>
+                  )}
+                  {planData && <span className="text-muted-foreground">· {planData.balance} remaining</span>}
+                </div>
               </div>
               <button
                 onClick={submit}
@@ -144,7 +213,7 @@ function FixPage() {
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
               >
                 <GitPullRequest className="h-4 w-4" />
-                {submitting ? "Creating pull request..." : "Create Pull Request"}
+                {submitting ? "Creating job…" : "Generate PR"}
               </button>
             </div>
           </div>

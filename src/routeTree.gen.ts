@@ -9,12 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RepoRepoIdRouteImport } from './routes/repo.$repoId'
 import { Route as PrRepoIdRouteImport } from './routes/pr.$repoId'
 import { Route as RepoRepoIdFixRouteImport } from './routes/repo.$repoId.fix'
+import { Route as RepoRepoIdArchRouteImport } from './routes/repo.$repoId.arch'
+import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
+import { Route as ApiAuthGithubRouteImport } from './routes/api/auth/github'
+import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
+import { Route as RepoRepoIdJobJobIdRouteImport } from './routes/repo.$repoId.job.$jobId'
 
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -40,57 +51,134 @@ const RepoRepoIdFixRoute = RepoRepoIdFixRouteImport.update({
   path: '/fix',
   getParentRoute: () => RepoRepoIdRoute,
 } as any)
+const RepoRepoIdArchRoute = RepoRepoIdArchRouteImport.update({
+  id: '/arch',
+  path: '/arch',
+  getParentRoute: () => RepoRepoIdRoute,
+} as any)
+const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
+  id: '/api/auth/logout',
+  path: '/api/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthGithubRoute = ApiAuthGithubRouteImport.update({
+  id: '/api/auth/github',
+  path: '/api/auth/github',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
+  id: '/api/auth/callback',
+  path: '/api/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RepoRepoIdJobJobIdRoute = RepoRepoIdJobJobIdRouteImport.update({
+  id: '/job/$jobId',
+  path: '/job/$jobId',
+  getParentRoute: () => RepoRepoIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/pricing': typeof PricingRoute
   '/pr/$repoId': typeof PrRepoIdRoute
   '/repo/$repoId': typeof RepoRepoIdRouteWithChildren
+  '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/auth/github': typeof ApiAuthGithubRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
+  '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/pricing': typeof PricingRoute
   '/pr/$repoId': typeof PrRepoIdRoute
   '/repo/$repoId': typeof RepoRepoIdRouteWithChildren
+  '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/auth/github': typeof ApiAuthGithubRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
+  '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/pricing': typeof PricingRoute
   '/pr/$repoId': typeof PrRepoIdRoute
   '/repo/$repoId': typeof RepoRepoIdRouteWithChildren
+  '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/auth/github': typeof ApiAuthGithubRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
+  '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/pricing'
     | '/pr/$repoId'
     | '/repo/$repoId'
+    | '/api/auth/callback'
+    | '/api/auth/github'
+    | '/api/auth/logout'
+    | '/repo/$repoId/arch'
     | '/repo/$repoId/fix'
+    | '/repo/$repoId/job/$jobId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/pr/$repoId' | '/repo/$repoId' | '/repo/$repoId/fix'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/pricing'
+    | '/pr/$repoId'
+    | '/repo/$repoId'
+    | '/api/auth/callback'
+    | '/api/auth/github'
+    | '/api/auth/logout'
+    | '/repo/$repoId/arch'
+    | '/repo/$repoId/fix'
+    | '/repo/$repoId/job/$jobId'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/pricing'
     | '/pr/$repoId'
     | '/repo/$repoId'
+    | '/api/auth/callback'
+    | '/api/auth/github'
+    | '/api/auth/logout'
+    | '/repo/$repoId/arch'
     | '/repo/$repoId/fix'
+    | '/repo/$repoId/job/$jobId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  PricingRoute: typeof PricingRoute
   PrRepoIdRoute: typeof PrRepoIdRoute
   RepoRepoIdRoute: typeof RepoRepoIdRouteWithChildren
+  ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
+  ApiAuthGithubRoute: typeof ApiAuthGithubRoute
+  ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -126,15 +214,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepoRepoIdFixRouteImport
       parentRoute: typeof RepoRepoIdRoute
     }
+    '/repo/$repoId/arch': {
+      id: '/repo/$repoId/arch'
+      path: '/arch'
+      fullPath: '/repo/$repoId/arch'
+      preLoaderRoute: typeof RepoRepoIdArchRouteImport
+      parentRoute: typeof RepoRepoIdRoute
+    }
+    '/api/auth/logout': {
+      id: '/api/auth/logout'
+      path: '/api/auth/logout'
+      fullPath: '/api/auth/logout'
+      preLoaderRoute: typeof ApiAuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/github': {
+      id: '/api/auth/github'
+      path: '/api/auth/github'
+      fullPath: '/api/auth/github'
+      preLoaderRoute: typeof ApiAuthGithubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/callback': {
+      id: '/api/auth/callback'
+      path: '/api/auth/callback'
+      fullPath: '/api/auth/callback'
+      preLoaderRoute: typeof ApiAuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repo/$repoId/job/$jobId': {
+      id: '/repo/$repoId/job/$jobId'
+      path: '/job/$jobId'
+      fullPath: '/repo/$repoId/job/$jobId'
+      preLoaderRoute: typeof RepoRepoIdJobJobIdRouteImport
+      parentRoute: typeof RepoRepoIdRoute
+    }
   }
 }
 
 interface RepoRepoIdRouteChildren {
+  RepoRepoIdArchRoute: typeof RepoRepoIdArchRoute
   RepoRepoIdFixRoute: typeof RepoRepoIdFixRoute
+  RepoRepoIdJobJobIdRoute: typeof RepoRepoIdJobJobIdRoute
 }
 
 const RepoRepoIdRouteChildren: RepoRepoIdRouteChildren = {
+  RepoRepoIdArchRoute: RepoRepoIdArchRoute,
   RepoRepoIdFixRoute: RepoRepoIdFixRoute,
+  RepoRepoIdJobJobIdRoute: RepoRepoIdJobJobIdRoute,
 }
 
 const RepoRepoIdRouteWithChildren = RepoRepoIdRoute._addFileChildren(
@@ -144,8 +271,12 @@ const RepoRepoIdRouteWithChildren = RepoRepoIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  PricingRoute: PricingRoute,
   PrRepoIdRoute: PrRepoIdRoute,
   RepoRepoIdRoute: RepoRepoIdRouteWithChildren,
+  ApiAuthCallbackRoute: ApiAuthCallbackRoute,
+  ApiAuthGithubRoute: ApiAuthGithubRoute,
+  ApiAuthLogoutRoute: ApiAuthLogoutRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
-import { FIX_DETAILS, MOCK_REPOS } from "@/lib/mock-data";
+import { FIX_DETAILS } from "@/lib/mock-data";
+import { getRepoFn } from "@/lib/api/db.functions";
 import { CheckCircle2, ExternalLink, FileCode2, GitPullRequest, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/pr/$repoId")({
@@ -9,8 +10,8 @@ export const Route = createFileRoute("/pr/$repoId")({
   component: PRPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
   errorComponent: ({ error }) => <div className="p-10 text-center text-critical">{error.message}</div>,
-  loader: ({ params }) => {
-    const repo = MOCK_REPOS.find((r) => r.id === params.repoId);
+  loader: async ({ params }) => {
+    const repo = await getRepoFn({ data: { repoId: params.repoId } });
     if (!repo) throw notFound();
     return { repo };
   },
