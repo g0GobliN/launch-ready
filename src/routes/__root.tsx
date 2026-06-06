@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -83,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", href: "/logo/logoo.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -106,12 +107,32 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function RouterProgressBar() {
+  const isLoading = useRouterState({ select: (s) => s.status === "pending" });
+  return (
+    <div
+      className="pointer-events-none fixed top-0 left-0 right-0 z-50 h-0.5 transition-opacity duration-300"
+      style={{ opacity: isLoading ? 1 : 0 }}
+      suppressHydrationWarning
+    >
+      <div
+        className="h-full bg-primary"
+        suppressHydrationWarning
+        style={{
+          width: isLoading ? "90%" : "0%",
+          transition: isLoading ? "width 8s cubic-bezier(0.1, 0.05, 0, 1)" : "none",
+        }}
+      />
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <RouterProgressBar />
       <Outlet />
     </QueryClientProvider>
   );

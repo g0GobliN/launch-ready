@@ -9,6 +9,8 @@ export interface UserPlanData {
   monthlyScanLimit: number;
   monthlyScanUsed: number;
   currentPeriodEnd: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
 }
 
 export interface CreditTransaction {
@@ -82,7 +84,7 @@ export async function getUserPlanData(login: string): Promise<UserPlanData> {
     .eq("github_login", login)
     .single();
   if (!data) {
-    return { plan: "free", balance: 0, aiCreditsTotal: 0, monthlyScanLimit: 3, monthlyScanUsed: 0, currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() };
+    return { plan: "free", balance: 0, aiCreditsTotal: 0, monthlyScanLimit: 3, monthlyScanUsed: 0, currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), stripeCustomerId: null, stripeSubscriptionId: null };
   }
   return {
     plan: data.plan as PlanId,
@@ -91,6 +93,8 @@ export async function getUserPlanData(login: string): Promise<UserPlanData> {
     monthlyScanLimit: data.monthly_scan_limit,
     monthlyScanUsed: data.monthly_scan_used,
     currentPeriodEnd: data.current_period_end,
+    stripeCustomerId: data.stripe_customer_id ?? null,
+    stripeSubscriptionId: data.stripe_subscription_id ?? null,
   };
 }
 

@@ -118,6 +118,10 @@ export type Database = {
           ai_credits_total: number;
           current_period_start: string;
           current_period_end: string;
+          created_at: string;
+          is_admin: boolean;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
         };
         Insert: {
           github_login: string;
@@ -129,6 +133,10 @@ export type Database = {
           ai_credits_total?: number;
           current_period_start?: string;
           current_period_end?: string;
+          created_at?: string;
+          is_admin?: boolean;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["user_credits"]["Insert"]>;
         Relationships: [];

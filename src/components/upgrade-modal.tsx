@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { X, Zap, Check } from "lucide-react";
+import { X, Zap, Check, Loader2, AlertCircle } from "lucide-react";
 import { PLANS, PLAN_ORDER, type PlanId } from "@/lib/plans";
+import { createCheckoutSessionFn } from "@/lib/api/stripe.functions";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -19,7 +22,23 @@ const REASON_COPY: Record<UpgradeModalProps["reason"], { title: string; descript
 };
 
 export function UpgradeModal({ open, onClose, reason, currentPlan }: UpgradeModalProps) {
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   if (!open) return null;
+
+  async function handleUpgrade(planId: string) {
+    setLoadingPlan(planId);
+    try {
+      const { url } = await createCheckoutSessionFn({
+        data: { planId: planId as "starter" | "pro" | "agency" },
+      });
+      window.location.href = url;
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Something went wrong");
+      setLoadingPlan(null);
+    }
+  }
 
   const copy = REASON_COPY[reason];
   const relevantPlans = PLAN_ORDER.filter(
@@ -32,7 +51,7 @@ export function UpgradeModal({ open, onClose, reason, currentPlan }: UpgradeModa
       <div className="relative w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:text-foreground"
+          className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:text-foreground cursor-pointer"
         >
           <X className="h-4 w-4" />
         </button>
@@ -83,23 +102,44 @@ export function UpgradeModal({ open, onClose, reason, currentPlan }: UpgradeModa
                   ))}
                 </ul>
                 {!isCurrent && (
-                  <Link
-                    to="/pricing"
-                    onClick={onClose}
-                    className={`mt-4 block w-full rounded-md py-1.5 text-center text-xs font-medium transition ${
+                  <button
+                    disabled={loadingPlan === plan.id}
+                    onClick={() => handleUpgrade(plan.id)}
+                    className={`mt-4 w-full rounded-md py-1.5 text-center text-xs font-medium transition disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer ${
                       isHighlighted
                         ? "bg-primary text-primary-foreground hover:opacity-90"
                         : "border border-border bg-background hover:bg-muted"
                     }`}
                   >
-                    Upgrade to {plan.name}
-                  </Link>
+                    {loadingPlan === plan.id ? (
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Redirecting…
+                      </span>
+                    ) : (
+                      `Upgrade to ${plan.name}`
+                    )}
+                  </button>
                 )}
               </div>
             );
           })}
         </div>
       </div>
+
+      <Dialog open={!!errorMsg} onOpenChange={() => setErrorMsg(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Unable to continue
+            </DialogTitle>
+            <DialogDescription>{errorMsg}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorMsg(null)}>Dismiss</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

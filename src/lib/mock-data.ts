@@ -350,6 +350,22 @@ export const FIX_DETAILS: Record<string, FixPreview & { label: string }> = {
           add(`SENTRY_DSN=`, 5),
         ],
       },
+      {
+        path: "README.md",
+        status: "modified",
+        lines: [
+          hunk("@@ -1,1 +1,7 @@"),
+          ctx(`# project-name`, 1, 1),
+          add(``, 2),
+          add(`## Environment variables`, 3),
+          add(``, 4),
+          add(`Copy \`.env.example\` to \`.env\` and fill in the required values:`, 5),
+          add(``, 6),
+          add(`\`\`\`bash`, 7),
+          add(`cp .env.example .env`, 8),
+          add(`\`\`\``, 9),
+        ],
+      },
     ],
   },
   readme: {

@@ -1,4 +1,4 @@
-import { callAI } from "./ai-client.server";
+import { aiService } from "../ai";
 
 const GITHUB_API = "https://api.github.com";
 const SOURCE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".mjs"]);
@@ -223,9 +223,9 @@ async function addAiExplanations(findings: ArchFinding[]): Promise<void> {
     .map((f, i) => `${i + 1}. [${f.type}] ${f.title}\nFiles: ${f.files.join(", ")}\nDetail: ${f.detail}`)
     .join("\n\n");
 
-  const text = await callAI(
+  const text = await aiService.analyze(
     `You are a senior software architect reviewing a codebase. Explain each finding below in 1-2 sentences: what the problem is and the simplest fix. Be concrete and actionable. Number your answers to match the input.\n\n${items}`,
-    1024,
+    { taskType: "architecture_analysis", maxTokens: 1024 },
   );
   const answers = text.split(/\n(?=\d+\.)/).map((s) => s.replace(/^\d+\.\s*/, "").trim());
   complex.forEach((f, i) => {

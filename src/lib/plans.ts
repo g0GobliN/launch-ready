@@ -24,7 +24,7 @@ export const PLANS: Record<PlanId, Plan> = {
   starter: {
     id: "starter",
     name: "Starter",
-    priceYen: 490,
+    priceYen: 980,
     repos: 3,
     scansPerMonth: 20,
     aiCreditsPerMonth: 10,
@@ -34,20 +34,20 @@ export const PLANS: Record<PlanId, Plan> = {
   pro: {
     id: "pro",
     name: "Pro",
-    priceYen: 980,
+    priceYen: 1980,
     repos: 10,
     scansPerMonth: 100,
     aiCreditsPerMonth: 50,
-    features: ["10 repositories", "100 scans / month", "50 AI credits / month", "Unlimited template fixes", "Architecture analysis", "Priority queue", "Advanced reports"],
+    features: ["10 repositories", "100 scans / month", "50 AI credits / month", "Architecture analysis", "Advanced reports", "Priority queue"],
   },
   agency: {
     id: "agency",
     name: "Agency",
-    priceYen: 2980,
+    priceYen: 4980,
     repos: 50,
     scansPerMonth: 500,
     aiCreditsPerMonth: 250,
-    features: ["50 repositories", "500 scans / month", "250 AI credits / month", "Team dashboard", "Reports", "Priority processing"],
+    features: ["50 repositories", "500 scans / month", "250 AI credits / month", "Team dashboard", "Priority processing", "Reports"],
   },
 };
 
@@ -57,6 +57,9 @@ export const AI_FIX_COSTS: Record<string, number> = {
   "playwright-ai": 2,
   "api-tests": 2,
 };
+
+// Fix IDs that trigger AI generation (safe to import client-side)
+export const AI_FIX_IDS = new Set(Object.keys(AI_FIX_COSTS));
 
 export const ARCH_SCAN_COST = 3;
 

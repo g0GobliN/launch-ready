@@ -1,10 +1,10 @@
 import { getServiceRoleClient } from "./supabase.server";
-import { callAI } from "./ai-client.server";
+import { aiService } from "../ai";
+import type { TaskType } from "../ai";
 
-import { AI_FIX_COSTS } from "./plans";
+import { AI_FIX_COSTS, AI_FIX_IDS } from "./plans";
 
-// Fix IDs that trigger AI generation
-export const AI_FIX_IDS = new Set(["vitest-ai", "playwright-ai", "api-tests"]);
+export { AI_FIX_IDS };
 
 const GITHUB_API = "https://api.github.com";
 
@@ -127,7 +127,13 @@ export async function generateAiTests(
 
   for (const fixId of fixIds) {
     const prompt = buildPrompt(fixId, relevantFiles);
-    const text = await callAI(prompt, 2048);
+    const taskType: TaskType =
+      fixId === "vitest-ai"
+        ? "vitest_generation"
+        : fixId === "playwright-ai"
+          ? "playwright_generation"
+          : "api_test_generation";
+    const text = await aiService.generate(prompt, { taskType, maxTokens: 2048 });
     results.push({ fixId, path: outputPath(fixId), content: text });
   }
 

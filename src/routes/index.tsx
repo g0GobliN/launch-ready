@@ -1,6 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
-import { ArrowRight, CheckCircle2, GitPullRequest, GithubIcon, Shield, TestTube2, Workflow, FileCode2, Boxes, Activity, Sparkles, Zap, Clock } from "lucide-react";
+import { PLANS, PLAN_ORDER } from "@/lib/plans";
+import { createCheckoutSessionFn } from "@/lib/api/stripe.functions";
+import { ArrowRight, Check, CheckCircle2, GitPullRequest, GithubIcon, Shield, TestTube2, Workflow, FileCode2, Boxes, Activity, Sparkles, Zap, Clock, Loader2, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -52,9 +57,9 @@ function Hero() {
             <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground glow-primary transition hover:opacity-90">
               <GithubIcon className="h-4 w-4" /> Connect GitHub
             </Link>
-            <a href="#how" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
+            <Link to="/demo" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
               View Demo <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
           </div>
           <div className="mt-6 text-xs text-muted-foreground">
             No credit card · 1 free repo scan · Open source friendly
@@ -75,7 +80,7 @@ function HeroPreview() {
           <span className="h-2.5 w-2.5 rounded-full bg-critical/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-          <div className="ml-3 font-mono text-xs text-muted-foreground">launchready.app/repo/indie-saas</div>
+          <div className="ml-3 font-mono text-xs text-muted-foreground">launchreadyy.xyz/repo/indie-saas</div>
         </div>
         <div className="grid gap-4 rounded-lg bg-background p-6 md:grid-cols-[200px_1fr]">
           <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-surface p-4">
@@ -197,58 +202,138 @@ function Features() {
 }
 
 function Pricing() {
-  const tiers = [
-    { name: "Free", price: "$0", desc: "Try it on one repo", features: ["1 repository", "Basic scan", "Up to 3 fixes per PR"], cta: "Connect GitHub", highlight: false },
-    { name: "Pro", price: "$9", desc: "For solo founders", features: ["Unlimited scans", "PR generation", "Full production checklist", "PDF reports"], cta: "Start Pro trial", highlight: true },
-    { name: "Agency", price: "$29", desc: "For teams & freelancers", features: ["Multiple repos", "Team reports", "Priority fixes", "Custom checklists"], cta: "Start Agency", highlight: false },
-  ];
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function handleUpgrade(planId: string) {
+    setLoadingPlan(planId);
+    try {
+      const { url } = await createCheckoutSessionFn({
+        data: { planId: planId as "starter" | "pro" | "agency" },
+      });
+      window.location.href = url;
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Something went wrong");
+      setLoadingPlan(null);
+    }
+  }
+
   return (
     <section id="pricing" className="border-b border-border/50 py-24">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12 text-center">
           <p className="text-xs uppercase tracking-widest text-primary">Pricing</p>
           <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Simple, builder-friendly pricing</h2>
+          <p className="mt-3 text-muted-foreground">Built for indie developers, vibe coders, and solo founders.</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {tiers.map((t) => (
-            <div key={t.name} className={`relative rounded-xl border p-6 ${t.highlight ? "border-primary/50 bg-card glow-primary" : "border-border bg-card"}`}>
-              {t.highlight && (
-                <div className="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">
-                  Most popular
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {PLAN_ORDER.map((planId) => {
+            const plan = PLANS[planId];
+            return (
+              <div
+                key={planId}
+                className={`relative rounded-2xl border p-6 ${
+                  plan.highlighted
+                    ? "border-primary/50 bg-primary/5 shadow-lg"
+                    : "border-border bg-card"
+                }`}
+              >
+                {plan.highlighted && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="rounded-full bg-primary px-3 py-0.5 text-xs font-medium text-primary-foreground">
+                      Most popular
+                    </span>
+                  </div>
+                )}
+                <div className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  {plan.name}
                 </div>
-              )}
-              <div className="font-display text-lg font-semibold">{t.name}</div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-semibold">{t.price}</span>
-                <span className="text-sm text-muted-foreground">/month</span>
+                <div className="mt-2">
+                  {plan.priceYen === 0 ? (
+                    <span className="font-display text-3xl font-bold">Free</span>
+                  ) : (
+                    <>
+                      <span className="font-display text-3xl font-bold">¥{plan.priceYen.toLocaleString()}</span>
+                      <span className="ml-1 text-sm text-muted-foreground">/ month</span>
+                    </>
+                  )}
+                </div>
+                <ul className="mt-5 space-y-2.5">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                {plan.priceYen === 0 ? (
+                  <Link
+                    to="/dashboard"
+                    className="mt-6 block w-full rounded-md border border-border bg-background py-2 text-center text-sm font-medium transition hover:bg-muted cursor-pointer"
+                  >
+                    Get started free
+                  </Link>
+                ) : (
+                  <button
+                    disabled={loadingPlan === planId}
+                    onClick={() => handleUpgrade(planId)}
+                    className={`mt-6 w-full rounded-md py-2 text-sm font-medium transition cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
+                      plan.highlighted
+                        ? "bg-primary text-primary-foreground hover:opacity-90"
+                        : "border border-border bg-background hover:bg-muted"
+                    }`}
+                  >
+                    {loadingPlan === planId ? (
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Redirecting…
+                      </span>
+                    ) : (
+                      `Upgrade to ${plan.name}`
+                    )}
+                  </button>
+                )}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{t.desc}</p>
-              <ul className="mt-6 space-y-2 text-sm">
-                {t.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link to="/dashboard" className={`mt-6 inline-flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition ${t.highlight ? "bg-primary text-primary-foreground hover:opacity-90" : "border border-border bg-surface hover:bg-muted"}`}>
-                {t.cta}
-              </Link>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+        <div className="mt-6 text-center">
+          <Link to="/pricing" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            View full plan comparison <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
+
+      <Dialog open={!!errorMsg} onOpenChange={() => setErrorMsg(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Unable to continue
+            </DialogTitle>
+            <DialogDescription>{errorMsg}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorMsg(null)}>Dismiss</Button>
+            {errorMsg === "Not authenticated" && (
+              <Button onClick={() => window.location.href = "/api/auth/github"}>Sign in with GitHub</Button>
+            )}
+            {errorMsg?.includes("billing portal") && (
+              <Button onClick={() => window.location.href = "/settings"}>Go to Settings</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
 function FAQ() {
   const qs = [
-    { q: "Will LaunchReady push to my main branch?", a: "Never. We always create a new branch and open a pull request for you to review." },
-    { q: "What permissions does the GitHub App need?", a: "Read access to repo contents and write access for branches & pull requests on the repos you select." },
-    { q: "Does it work with Next.js, Vite, and Express?", a: "Yes. We detect the framework and tailor fixes to your stack." },
-    { q: "Can I use it on private repos?", a: "Pro and Agency plans support private repositories." },
-    { q: "Is my code ever stored?", a: "No. We analyze repo metadata and configs in-memory — code is never persisted." },
+    { q: "Will LaunchReady push to my main branch?", a: "Never. We always create a new branch and open a pull request for you to review. You stay in full control — nothing merges without your approval." },
+    { q: "What permissions does the GitHub App need?", a: "Read access to repo contents and write access for branches & pull requests on the repos you select. We request the minimum permissions required and never access repos you haven't connected." },
+    { q: "Does it work with Next.js, Vite, and Express?", a: "Yes. We detect the framework and tailor fixes to your stack. Support for Next.js, React Vite, and Express is fully production-tested." },
+    { q: "Can I use it on private repos?", a: "Pro and Agency plans support private repositories. Free plan is limited to public repos." },
+    { q: "Is my code ever stored?", a: "No. We analyze repo metadata and configs in-memory — code is never persisted to our servers or databases." },
   ];
   return (
     <section id="faq" className="border-b border-border/50 py-24">
@@ -277,7 +362,7 @@ function CTA() {
   return (
     <section className="relative overflow-hidden py-24">
       <div className="absolute inset-0 grid-bg opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]" />
-      <div className="relative mx-auto max-w-4xl rounded-2xl border border-primary/30 bg-card p-10 text-center glow-primary">
+      <div className="relative mx-auto max-w-4xl rounded-2xl border border-primary/15 bg-card p-10 text-center">
         <h2 className="font-display text-3xl font-semibold sm:text-4xl">Ship like a senior engineer.</h2>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
           Stop manually setting up CI, tests, and Docker. Let LaunchReady open the PR.
@@ -286,7 +371,7 @@ function CTA() {
           <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
             <GithubIcon className="h-4 w-4" /> Connect GitHub
           </Link>
-          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
+          <Link to="/demo" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
             <Zap className="h-4 w-4" /> Try the demo
           </Link>
         </div>

@@ -1,41 +1,117 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Rocket } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getSessionUserFn } from "@/lib/api/credits.functions";
+import { Settings, LayoutDashboard, ArrowLeft } from "lucide-react";
 
-export function SiteHeader() {
+const ADMINS = ((import.meta.env.VITE_ADMIN_GITHUB_LOGIN as string) ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+
+interface SiteHeaderProps {
+  user?: { login: string; avatarUrl: string } | null;
+}
+
+export function SiteHeader({ user: userProp }: SiteHeaderProps) {
+  const { data: sessionUser } = useQuery({
+    queryKey: ["session-user"],
+    queryFn: () => getSessionUserFn(),
+    staleTime: Infinity,
+  });
+  const user = userProp ?? sessionUser;
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const isApp = path.startsWith("/dashboard") || path.startsWith("/repo") || path.startsWith("/pr");
+  const isAdmin = path.startsWith("/admin");
+  const isApp = isAdmin || path.startsWith("/dashboard") || path.startsWith("/repo") || path.startsWith("/pr") || path.startsWith("/settings");
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2 font-display text-base font-semibold">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Rocket className="h-4 w-4" />
-          </span>
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <Link to="/" className="flex items-center gap-2 font-display text-base font-semibold shrink-0">
+          <div className="h-9 w-9 overflow-hidden">
+            <img src="/logo/logoo.png" alt="" className="w-full h-full" style={{ transform: "scale(0.8)", transformOrigin: "center" }} />
+          </div>
           LaunchReady
         </Link>
-        {!isApp ? (
+
+        {isAdmin ? (
+          <nav />
+        ) : !isApp ? (
           <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-            <a href="#how" className="hover:text-foreground">How it works</a>
-            <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#pricing" className="hover:text-foreground">Pricing</a>
-            <a href="#faq" className="hover:text-foreground">FAQ</a>
+            <Link to="/workflow" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>How it works</Link>
+            <a href="/#features" className="hover:text-foreground">Features</a>
+            <Link to="/pricing" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Pricing</Link>
+            <a href="/#faq" className="hover:text-foreground">FAQ</a>
           </nav>
         ) : (
-          <nav className="flex items-center gap-5 text-sm text-muted-foreground">
+          <nav className="hidden sm:flex items-center gap-5 text-sm text-muted-foreground">
             <Link to="/dashboard" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Dashboard</Link>
             <Link to="/pricing" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Pricing</Link>
           </nav>
         )}
-        <div className="flex items-center gap-2">
-          {!isApp ? (
-            <Link to="/dashboard" className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition hover:opacity-90">
+
+        <div className="flex items-center gap-2 shrink-0">
+          {isAdmin ? (
+            <div className="flex items-center gap-2">
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+              {user && (
+                <div className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-xs">
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.login} className="h-5 w-5 rounded-full" />
+                  ) : (
+                    <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">
+                      {user.login[0].toUpperCase()}
+                    </span>
+                  )}
+                  <span className="hidden sm:inline text-muted-foreground">@{user.login}</span>
+                </div>
+              )}
+            </div>
+          ) : !isApp ? (
+            <Link
+              to="/dashboard"
+              className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            >
               Connect GitHub
             </Link>
+          ) : user ? (
+            <div className="flex items-center gap-2">
+              {ADMINS.includes(user.login) && (
+                <Link
+                  to="/admin"
+                  className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface hover:bg-muted transition"
+                  title="Admin"
+                >
+                  <LayoutDashboard className="h-3.5 w-3.5 text-muted-foreground" />
+                </Link>
+              )}
+              <Link
+                to="/settings"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-2.5 py-1 text-xs hover:bg-muted transition"
+              >
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.login} className="h-5 w-5 rounded-full" />
+                ) : (
+                  <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">
+                    {user.login[0].toUpperCase()}
+                  </span>
+                )}
+                <span className="hidden sm:inline text-muted-foreground">@{user.login}</span>
+              </Link>
+              <Link
+                to="/settings"
+                className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface hover:bg-muted transition"
+                title="Settings"
+              >
+                <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+            </div>
           ) : (
             <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-2.5 py-1 text-xs">
               <span className="h-2 w-2 rounded-full bg-primary" />
-              <span className="text-muted-foreground">@you</span>
+              <span className="text-muted-foreground">Loading…</span>
             </div>
           )}
         </div>

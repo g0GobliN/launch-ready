@@ -2,8 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { PLANS, PLAN_ORDER } from "@/lib/plans";
 import { getUserPlanFn } from "@/lib/api/credits.functions";
-import { Check, Zap, Loader2 } from "lucide-react";
+import { createCheckoutSessionFn } from "@/lib/api/stripe.functions";
+import { Check, Zap, Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({ meta: [{ title: "Pricing — LaunchReady" }] }),
@@ -28,6 +31,7 @@ function PricingPage() {
   const planData = Route.useLoaderData();
   const currentPlan = planData?.plan ?? "free";
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen">
@@ -73,7 +77,7 @@ function PricingPage() {
                 <div className="font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   {plan.name}
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 cursor-pointer">
                   {plan.priceYen === 0 ? (
                     <span className="font-display text-3xl font-bold">Free</span>
                   ) : (
@@ -101,24 +105,29 @@ function PricingPage() {
                   ) : planId === "free" ? (
                     <Link
                       to="/dashboard"
-                      className="block w-full rounded-md border border-border bg-background py-2 text-center text-sm font-medium hover:bg-muted transition"
+                      className="block w-full rounded-md border border-border bg-background py-2 text-center text-sm font-medium hover:bg-muted transition cursor-pointer"
                     >
                       Get started free
                     </Link>
                   ) : (
                     <button
                       disabled={loadingPlan === planId}
-                      className={`w-full rounded-md py-2 text-sm font-medium transition disabled:opacity-70 ${
+                      className={`w-full rounded-md py-2 text-sm font-medium transition disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed ${
                         plan.highlighted
                           ? "bg-primary text-primary-foreground hover:opacity-90"
                           : "border border-border bg-background hover:bg-muted"
                       }`}
-                      onClick={() => {
+                      onClick={async () => {
                         setLoadingPlan(planId);
-                        setTimeout(() => {
-                          alert(`Payment integration coming soon.\nPlan: ${plan.name} — ¥${plan.priceYen}/month`);
+                        try {
+                          const { url } = await createCheckoutSessionFn({
+                            data: { planId: planId as "starter" | "pro" | "agency" },
+                          });
+                          window.location.href = url;
+                        } catch (e) {
+                          setErrorMsg(e instanceof Error ? e.message : "Something went wrong");
                           setLoadingPlan(null);
-                        }, 600);
+                        }
                       }}
                     >
                       <span className="inline-flex items-center justify-center gap-1.5">
@@ -213,6 +222,28 @@ function PricingPage() {
           </div>
         </div>
       </div>
+      <Dialog open={!!errorMsg} onOpenChange={() => setErrorMsg(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Unable to continue
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {errorMsg}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorMsg(null)}>Dismiss</Button>
+            {errorMsg === "Not authenticated" && (
+              <Button onClick={() => window.location.href = "/api/auth/github"}>Sign in with GitHub</Button>
+            )}
+            {errorMsg?.includes("billing portal") && (
+              <Button onClick={() => window.location.href = "/settings"}>Go to Settings</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

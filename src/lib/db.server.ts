@@ -163,7 +163,7 @@ export async function getRecentScans(
     .from("scans")
     .select("score, created_at, repos(full_name)")
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(50);
 
   if (repoIds) {
     query = query.in("repo_id", repoIds);
@@ -176,7 +176,18 @@ export async function getRecentScans(
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).map((s) => ({
+  const seen = new Set<string>();
+  const deduped: typeof data = [];
+  for (const s of data ?? []) {
+    const name = s.repos?.full_name ?? "unknown";
+    if (!seen.has(name)) {
+      seen.add(name);
+      deduped.push(s);
+    }
+    if (deduped.length === 5) break;
+  }
+
+  return deduped.map((s) => ({
     repo: s.repos?.full_name ?? "unknown",
     score: s.score,
     when: formatDistanceToNow(new Date(s.created_at), { addSuffix: true }),

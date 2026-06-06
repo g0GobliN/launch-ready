@@ -6,9 +6,8 @@ import { createFixRequest } from "@/lib/api/github.functions";
 import { getUserPlanFn } from "@/lib/api/credits.functions";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { DiffView } from "@/components/diff-view";
-import { AI_FIX_COSTS } from "@/lib/plans";
-import { AI_FIX_IDS } from "@/lib/ai-tests.server";
-import { ArrowLeft, Coins, FileEdit, FilePlus2, GitBranch, GitPullRequest, Package, ShieldCheck, Beaker, Lock } from "lucide-react";
+import { AI_FIX_COSTS, AI_FIX_IDS } from "@/lib/plans";
+import { ArrowLeft, Coins, FileEdit, FilePlus2, GitBranch, GitPullRequest, Package, ShieldCheck, Lock } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId/fix")({
@@ -34,7 +33,12 @@ function FixPage() {
   const navigate = Route.useNavigate();
   const currentPlan = planData?.plan ?? "free";
   const canUseAiFixes = currentPlan !== "free";
-  const initial = fixes ? fixes.split(",").filter(Boolean) : Object.keys(FIX_DETAILS).slice(0, 4);
+  const scanFixIds = useMemo(() => new Set(scan.issues.map((i) => i.fixId)), [scan]);
+  const availableFixes = useMemo(
+    () => Object.entries(FIX_DETAILS).filter(([id]) => scanFixIds.has(id)),
+    [scanFixIds],
+  );
+  const initial = fixes ? fixes.split(",").filter(Boolean) : availableFixes.slice(0, 4).map(([id]) => id);
   const [selected, setSelected] = useState<string[]>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -99,20 +103,11 @@ function FixPage() {
         <h1 className="mt-4 font-display text-2xl font-semibold">Preview your pull request</h1>
         <p className="mt-1 text-sm text-muted-foreground">Review what LaunchReady will add to <span className="font-mono">{repo.full_name}</span>.</p>
 
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <div className="flex flex-1 items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-            <div className="text-sm">
-              <div className="font-medium text-foreground">We never commit directly to <span className="font-mono">main</span>.</div>
-              <div className="mt-0.5 text-muted-foreground">LaunchReady creates a new branch and opens a Pull Request you can review before merging.</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 sm:max-w-xs">
-            <Beaker className="mt-0.5 h-5 w-5 flex-shrink-0 text-accent" />
-            <div className="text-sm">
-              <div className="font-medium">Demo mode</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">GitHub integration is mocked. No real PR will be created.</div>
-            </div>
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+          <div className="text-sm">
+            <div className="font-medium text-foreground">We never commit directly to <span className="font-mono">main</span>.</div>
+            <div className="mt-0.5 text-muted-foreground">LaunchReady creates a new branch and opens a Pull Request you can review before merging.</div>
           </div>
         </div>
 
@@ -120,7 +115,7 @@ function FixPage() {
           <div className="rounded-xl border border-border bg-card p-5">
             <h3 className="font-display text-sm font-semibold">Fixes ({selected.length})</h3>
             <div className="mt-3 space-y-2">
-              {Object.entries(FIX_DETAILS).map(([id, f]) => {
+              {availableFixes.map(([id, f]) => {
                 const isAiFix = AI_FIX_IDS.has(id);
                 const isLocked = isAiFix && !canUseAiFixes;
                 const isSel = selected.includes(id);
@@ -210,7 +205,7 @@ function FixPage() {
               <button
                 onClick={submit}
                 disabled={submitting || selected.length === 0}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 <GitPullRequest className="h-4 w-4" />
                 {submitting ? "Creating job…" : "Generate PR"}

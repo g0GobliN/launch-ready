@@ -47,9 +47,15 @@ export const saveSelectedRepo = createServerFn({ method: "POST" })
     const user = getStoredUser();
     if (!user) throw new Error("Not authenticated");
 
-    await checkRepoLimit(user.login);
-
     const db = getServiceRoleClient();
+    const { data: existing } = await db
+      .from("repos")
+      .select("id")
+      .eq("id", String(data.id))
+      .eq("owner", user.login)
+      .maybeSingle();
+    if (!existing) await checkRepoLimit(user.login);
+
     const { error } = await db.from("repos").upsert({
       id: String(data.id),
       name: data.name,

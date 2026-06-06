@@ -9,21 +9,47 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkflowRouteImport } from './routes/workflow'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as RepoRepoIdRouteImport } from './routes/repo.$repoId'
 import { Route as PrRepoIdRouteImport } from './routes/pr.$repoId'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminRevenueRouteImport } from './routes/admin/revenue'
+import { Route as AdminPromotionsRouteImport } from './routes/admin/promotions'
+import { Route as AdminJobsRouteImport } from './routes/admin/jobs'
+import { Route as RepoRepoIdIndexRouteImport } from './routes/repo.$repoId.index'
+import { Route as RepoRepoIdArchRouteImport } from './routes/repo.$repoId_.arch'
 import { Route as RepoRepoIdFixRouteImport } from './routes/repo.$repoId.fix'
-import { Route as RepoRepoIdArchRouteImport } from './routes/repo.$repoId.arch'
+import { Route as ApiStripeSuccessRouteImport } from './routes/api/stripe/success'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiAuthGithubRouteImport } from './routes/api/auth/github'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as RepoRepoIdJobJobIdRouteImport } from './routes/repo.$repoId.job.$jobId'
 
+const WorkflowRoute = WorkflowRouteImport.update({
+  id: '/workflow',
+  path: '/workflow',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -31,10 +57,20 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const RepoRepoIdRoute = RepoRepoIdRouteImport.update({
   id: '/repo/$repoId',
@@ -46,15 +82,45 @@ const PrRepoIdRoute = PrRepoIdRouteImport.update({
   path: '/pr/$repoId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRevenueRoute = AdminRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPromotionsRoute = AdminPromotionsRouteImport.update({
+  id: '/promotions',
+  path: '/promotions',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminJobsRoute = AdminJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AdminRoute,
+} as any)
+const RepoRepoIdIndexRoute = RepoRepoIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RepoRepoIdRoute,
+} as any)
+const RepoRepoIdArchRoute = RepoRepoIdArchRouteImport.update({
+  id: '/repo/$repoId_/arch',
+  path: '/repo/$repoId/arch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RepoRepoIdFixRoute = RepoRepoIdFixRouteImport.update({
   id: '/fix',
   path: '/fix',
   getParentRoute: () => RepoRepoIdRoute,
 } as any)
-const RepoRepoIdArchRoute = RepoRepoIdArchRouteImport.update({
-  id: '/arch',
-  path: '/arch',
-  getParentRoute: () => RepoRepoIdRoute,
+const ApiStripeSuccessRoute = ApiStripeSuccessRouteImport.update({
+  id: '/api/stripe/success',
+  path: '/api/stripe/success',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
   id: '/api/auth/logout',
@@ -79,104 +145,193 @@ const RepoRepoIdJobJobIdRoute = RepoRepoIdJobJobIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/demo': typeof DemoRoute
   '/pricing': typeof PricingRoute
+  '/settings': typeof SettingsRoute
+  '/workflow': typeof WorkflowRoute
+  '/admin/jobs': typeof AdminJobsRoute
+  '/admin/promotions': typeof AdminPromotionsRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/users': typeof AdminUsersRoute
   '/pr/$repoId': typeof PrRepoIdRoute
   '/repo/$repoId': typeof RepoRepoIdRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/auth/github': typeof ApiAuthGithubRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
-  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
+  '/api/stripe/success': typeof ApiStripeSuccessRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
+  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
+  '/repo/$repoId/': typeof RepoRepoIdIndexRoute
   '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/demo': typeof DemoRoute
   '/pricing': typeof PricingRoute
+  '/settings': typeof SettingsRoute
+  '/workflow': typeof WorkflowRoute
+  '/admin/jobs': typeof AdminJobsRoute
+  '/admin/promotions': typeof AdminPromotionsRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/users': typeof AdminUsersRoute
   '/pr/$repoId': typeof PrRepoIdRoute
-  '/repo/$repoId': typeof RepoRepoIdRouteWithChildren
+  '/admin': typeof AdminIndexRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/auth/github': typeof ApiAuthGithubRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
-  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
+  '/api/stripe/success': typeof ApiStripeSuccessRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
+  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
+  '/repo/$repoId': typeof RepoRepoIdIndexRoute
   '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/demo': typeof DemoRoute
   '/pricing': typeof PricingRoute
+  '/settings': typeof SettingsRoute
+  '/workflow': typeof WorkflowRoute
+  '/admin/jobs': typeof AdminJobsRoute
+  '/admin/promotions': typeof AdminPromotionsRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/users': typeof AdminUsersRoute
   '/pr/$repoId': typeof PrRepoIdRoute
   '/repo/$repoId': typeof RepoRepoIdRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/auth/github': typeof ApiAuthGithubRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
-  '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
+  '/api/stripe/success': typeof ApiStripeSuccessRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
+  '/repo/$repoId_/arch': typeof RepoRepoIdArchRoute
+  '/repo/$repoId/': typeof RepoRepoIdIndexRoute
   '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/dashboard'
+    | '/demo'
     | '/pricing'
+    | '/settings'
+    | '/workflow'
+    | '/admin/jobs'
+    | '/admin/promotions'
+    | '/admin/revenue'
+    | '/admin/users'
     | '/pr/$repoId'
     | '/repo/$repoId'
+    | '/admin/'
     | '/api/auth/callback'
     | '/api/auth/github'
     | '/api/auth/logout'
-    | '/repo/$repoId/arch'
+    | '/api/stripe/success'
     | '/repo/$repoId/fix'
+    | '/repo/$repoId/arch'
+    | '/repo/$repoId/'
     | '/repo/$repoId/job/$jobId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard'
+    | '/demo'
     | '/pricing'
+    | '/settings'
+    | '/workflow'
+    | '/admin/jobs'
+    | '/admin/promotions'
+    | '/admin/revenue'
+    | '/admin/users'
     | '/pr/$repoId'
-    | '/repo/$repoId'
+    | '/admin'
     | '/api/auth/callback'
     | '/api/auth/github'
     | '/api/auth/logout'
-    | '/repo/$repoId/arch'
+    | '/api/stripe/success'
     | '/repo/$repoId/fix'
+    | '/repo/$repoId/arch'
+    | '/repo/$repoId'
     | '/repo/$repoId/job/$jobId'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/dashboard'
+    | '/demo'
     | '/pricing'
+    | '/settings'
+    | '/workflow'
+    | '/admin/jobs'
+    | '/admin/promotions'
+    | '/admin/revenue'
+    | '/admin/users'
     | '/pr/$repoId'
     | '/repo/$repoId'
+    | '/admin/'
     | '/api/auth/callback'
     | '/api/auth/github'
     | '/api/auth/logout'
-    | '/repo/$repoId/arch'
+    | '/api/stripe/success'
     | '/repo/$repoId/fix'
+    | '/repo/$repoId_/arch'
+    | '/repo/$repoId/'
     | '/repo/$repoId/job/$jobId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
+  DemoRoute: typeof DemoRoute
   PricingRoute: typeof PricingRoute
+  SettingsRoute: typeof SettingsRoute
+  WorkflowRoute: typeof WorkflowRoute
   PrRepoIdRoute: typeof PrRepoIdRoute
   RepoRepoIdRoute: typeof RepoRepoIdRouteWithChildren
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
   ApiAuthGithubRoute: typeof ApiAuthGithubRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
+  ApiStripeSuccessRoute: typeof ApiStripeSuccessRoute
+  RepoRepoIdArchRoute: typeof RepoRepoIdArchRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workflow': {
+      id: '/workflow'
+      path: '/workflow'
+      fullPath: '/workflow'
+      preLoaderRoute: typeof WorkflowRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -186,12 +341,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/repo/$repoId': {
       id: '/repo/$repoId'
@@ -207,6 +376,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrRepoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/revenue': {
+      id: '/admin/revenue'
+      path: '/revenue'
+      fullPath: '/admin/revenue'
+      preLoaderRoute: typeof AdminRevenueRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/promotions': {
+      id: '/admin/promotions'
+      path: '/promotions'
+      fullPath: '/admin/promotions'
+      preLoaderRoute: typeof AdminPromotionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/jobs': {
+      id: '/admin/jobs'
+      path: '/jobs'
+      fullPath: '/admin/jobs'
+      preLoaderRoute: typeof AdminJobsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/repo/$repoId/': {
+      id: '/repo/$repoId/'
+      path: '/'
+      fullPath: '/repo/$repoId/'
+      preLoaderRoute: typeof RepoRepoIdIndexRouteImport
+      parentRoute: typeof RepoRepoIdRoute
+    }
+    '/repo/$repoId_/arch': {
+      id: '/repo/$repoId_/arch'
+      path: '/repo/$repoId/arch'
+      fullPath: '/repo/$repoId/arch'
+      preLoaderRoute: typeof RepoRepoIdArchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/repo/$repoId/fix': {
       id: '/repo/$repoId/fix'
       path: '/fix'
@@ -214,12 +425,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepoRepoIdFixRouteImport
       parentRoute: typeof RepoRepoIdRoute
     }
-    '/repo/$repoId/arch': {
-      id: '/repo/$repoId/arch'
-      path: '/arch'
-      fullPath: '/repo/$repoId/arch'
-      preLoaderRoute: typeof RepoRepoIdArchRouteImport
-      parentRoute: typeof RepoRepoIdRoute
+    '/api/stripe/success': {
+      id: '/api/stripe/success'
+      path: '/api/stripe/success'
+      fullPath: '/api/stripe/success'
+      preLoaderRoute: typeof ApiStripeSuccessRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/logout': {
       id: '/api/auth/logout'
@@ -252,15 +463,33 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminJobsRoute: typeof AdminJobsRoute
+  AdminPromotionsRoute: typeof AdminPromotionsRoute
+  AdminRevenueRoute: typeof AdminRevenueRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminJobsRoute: AdminJobsRoute,
+  AdminPromotionsRoute: AdminPromotionsRoute,
+  AdminRevenueRoute: AdminRevenueRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface RepoRepoIdRouteChildren {
-  RepoRepoIdArchRoute: typeof RepoRepoIdArchRoute
   RepoRepoIdFixRoute: typeof RepoRepoIdFixRoute
+  RepoRepoIdIndexRoute: typeof RepoRepoIdIndexRoute
   RepoRepoIdJobJobIdRoute: typeof RepoRepoIdJobJobIdRoute
 }
 
 const RepoRepoIdRouteChildren: RepoRepoIdRouteChildren = {
-  RepoRepoIdArchRoute: RepoRepoIdArchRoute,
   RepoRepoIdFixRoute: RepoRepoIdFixRoute,
+  RepoRepoIdIndexRoute: RepoRepoIdIndexRoute,
   RepoRepoIdJobJobIdRoute: RepoRepoIdJobJobIdRoute,
 }
 
@@ -270,13 +499,19 @@ const RepoRepoIdRouteWithChildren = RepoRepoIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
+  DemoRoute: DemoRoute,
   PricingRoute: PricingRoute,
+  SettingsRoute: SettingsRoute,
+  WorkflowRoute: WorkflowRoute,
   PrRepoIdRoute: PrRepoIdRoute,
   RepoRepoIdRoute: RepoRepoIdRouteWithChildren,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
   ApiAuthGithubRoute: ApiAuthGithubRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
+  ApiStripeSuccessRoute: ApiStripeSuccessRoute,
+  RepoRepoIdArchRoute: RepoRepoIdArchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

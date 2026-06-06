@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/repo/$repoId/arch")({
+export const Route = createFileRoute("/repo/$repoId_/arch")({
   head: () => ({ meta: [{ title: "Architecture — LaunchReady" }] }),
   component: ArchPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
@@ -116,7 +116,7 @@ function ArchPage() {
           <button
             onClick={handleRun}
             disabled={running}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
           >
             {running ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -234,7 +234,7 @@ function FindingCard({ finding }: { finding: ArchFinding }) {
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="flex w-full items-start gap-4 p-4 text-left hover:bg-surface transition"
+        className="flex w-full items-start gap-4 p-4 text-left hover:bg-surface transition cursor-pointer"
       >
         <Icon className={`mt-0.5 h-4 w-4 flex-shrink-0 ${cfg?.color ?? "text-muted-foreground"}`} />
         <div className="min-w-0 flex-1">
