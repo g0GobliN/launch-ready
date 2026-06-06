@@ -7,9 +7,11 @@
     "dev": "concurrently --kill-others-on-fail --names \"vite,stripe\" -c \"cyan,yellow\" \"vite dev\" \"%LOCALAPPDATA%\\Microsoft\\WinGet\\Packages\\Stripe.StripeCli_Microsoft.Winget.Source_8wekyb3d8bbwe\\stripe.exe listen --forward-to localhost:5174/api/stripe/webhook\"",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
@@ -54,6 +56,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "lru-cache": "^11.5.1",
     "lucide-react": "^0.575.0",
     "openai": "^6.42.0",
     "react": "^19.2.0",
@@ -71,10 +74,10 @@
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
     "ws": "^8.21.0",
-    "zod": "^3.24.2",
-    "lru-cache": "^11.5.1"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.40.0",
     "@eslint/js": "^9.32.0",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
@@ -92,6 +95,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "wrangler": "^4.98.0"
   }
 }
