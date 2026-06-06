@@ -35,8 +35,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: ${{ steps.pm.outputs.name }}
+          node-version: '22'
+
+      - name: Debug Node Version
+        run: node -v
 
       - name: Install dependencies
         run: ${{ steps.pm.outputs.install }}
