@@ -230,6 +230,7 @@ function ScannerAnimation({ onDone }: { onDone: () => void }) {
     }
     const t = setTimeout(() => setLine((l) => l + 1), 160);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [line]);
 
   return (

@@ -150,6 +150,7 @@ function RepoList({
       setGrantNotif(unseen[0]);
       localStorage.setItem(seenKey, JSON.stringify([...seen, ...unseen.map((t) => t.id)]));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = repos.filter((r) => r.full_name.toLowerCase().includes(q.toLowerCase()));
