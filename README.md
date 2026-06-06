@@ -21,15 +21,15 @@ AI-powered fixes (Vitest suites, Playwright flows, API tests) are generated on d
 
 ## Tech stack
 
-| Layer | Technology |
-|---|---|
-| Framework | [TanStack Start](https://tanstack.com/start) (React 19, SSR) |
-| Routing | TanStack Router |
-| Database | Supabase (PostgreSQL) |
-| Auth | GitHub OAuth (custom session cookies) |
-| Payments | Stripe |
-| AI | DeepSeek V3 · Claude · OpenAI · Gemini (provider abstraction) |
-| Styling | Tailwind CSS v4 + Radix UI |
+| Layer     | Technology                                                    |
+| --------- | ------------------------------------------------------------- |
+| Framework | [TanStack Start](https://tanstack.com/start) (React 19, SSR)  |
+| Routing   | TanStack Router                                               |
+| Database  | Supabase (PostgreSQL)                                         |
+| Auth      | GitHub OAuth (custom session cookies)                         |
+| Payments  | Stripe                                                        |
+| AI        | DeepSeek V3 · Claude · OpenAI · Gemini (provider abstraction) |
+| Styling   | Tailwind CSS v4 + Radix UI                                    |
 
 ---
 
@@ -127,26 +127,26 @@ src/
 
 ## Plans
 
-| | Free | Starter | Pro | Agency |
-|---|---|---|---|---|
-| Price | ¥0 | ¥490 / mo | ¥980 / mo | ¥2,980 / mo |
-| Repositories | 1 | 3 | 10 | 50 |
-| Scans / month | 3 | 20 | 100 | 500 |
-| AI credits / month | — | 10 | 50 | 250 |
-| Template fixes | ✓ | ✓ | ✓ | ✓ |
-| AI-generated fixes | — | ✓ | ✓ | ✓ |
-| Architecture analysis | — | — | ✓ | ✓ |
-| Priority processing | — | — | ✓ | ✓ |
-| Team dashboard | — | — | — | ✓ |
+|                       | Free | Starter   | Pro       | Agency      |
+| --------------------- | ---- | --------- | --------- | ----------- |
+| Price                 | ¥0   | ¥490 / mo | ¥980 / mo | ¥2,980 / mo |
+| Repositories          | 1    | 3         | 10        | 50          |
+| Scans / month         | 3    | 20        | 100       | 500         |
+| AI credits / month    | —    | 10        | 50        | 250         |
+| Template fixes        | ✓    | ✓         | ✓         | ✓           |
+| AI-generated fixes    | —    | ✓         | ✓         | ✓           |
+| Architecture analysis | —    | —         | ✓         | ✓           |
+| Priority processing   | —    | —         | ✓         | ✓           |
+| Team dashboard        | —    | —         | —         | ✓           |
 
 **AI credit costs:**
 
-| Fix type | Credits |
-|---|---|
-| Vitest test suite | 1 |
-| Playwright E2E tests | 2 |
-| API test generation | 2 |
-| Architecture analysis | 3 |
+| Fix type              | Credits |
+| --------------------- | ------- |
+| Vitest test suite     | 1       |
+| Playwright E2E tests  | 2       |
+| API test generation   | 2       |
+| Architecture analysis | 3       |
 
 ---
 
@@ -179,16 +179,16 @@ Switch providers by setting `AI_PROVIDER` in `.env` — no code changes required
 
 Eight tables — see [`supabase/schema.sql`](supabase/schema.sql) for the full definition.
 
-| Table | Purpose |
-|---|---|
-| `repos` | GitHub repos saved by users |
-| `scans` | Scan results (score) per repo |
-| `issues` | Individual issues found per scan |
-| `fix_requests` | Async PR-generation jobs |
-| `user_credits` | Per-user plan, credit balance, quota |
-| `credit_transactions` | Append-only credit ledger |
-| `ai_test_cache` | Cached AI results (retry = free) |
-| `arch_scans` | Architecture analysis results |
+| Table                 | Purpose                              |
+| --------------------- | ------------------------------------ |
+| `repos`               | GitHub repos saved by users          |
+| `scans`               | Scan results (score) per repo        |
+| `issues`              | Individual issues found per scan     |
+| `fix_requests`        | Async PR-generation jobs             |
+| `user_credits`        | Per-user plan, credit balance, quota |
+| `credit_transactions` | Append-only credit ledger            |
+| `ai_test_cache`       | Cached AI results (retry = free)     |
+| `arch_scans`          | Architecture analysis results        |
 
 ---
 

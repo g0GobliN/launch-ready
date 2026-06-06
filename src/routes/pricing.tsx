@@ -5,7 +5,14 @@ import { getUserPlanFn } from "@/lib/api/credits.functions";
 import { createCheckoutSessionFn } from "@/lib/api/stripe.functions";
 import { Check, Zap, Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/pricing")({
@@ -15,16 +22,16 @@ export const Route = createFileRoute("/pricing")({
 });
 
 const FEATURE_ROWS = [
-  { label: "Repositories",        free: "1",    starter: "3",    pro: "10",   agency: "50"  },
-  { label: "Scans / month",       free: "3",    starter: "20",   pro: "100",  agency: "500" },
-  { label: "AI credits / month",  free: "—",    starter: "10",   pro: "50",   agency: "250" },
-  { label: "Template fixes",      free: "✓",    starter: "✓",    pro: "✓",    agency: "✓"   },
-  { label: "AI-generated fixes",  free: "—",    starter: "✓",    pro: "✓",    agency: "✓"   },
-  { label: "Architecture analysis",free: "—",   starter: "—",    pro: "✓",    agency: "✓"   },
-  { label: "Job history",         free: "—",    starter: "✓",    pro: "✓",    agency: "✓"   },
-  { label: "Advanced reports",    free: "—",    starter: "—",    pro: "✓",    agency: "✓"   },
-  { label: "Priority processing", free: "—",    starter: "—",    pro: "✓",    agency: "✓"   },
-  { label: "Team dashboard",      free: "—",    starter: "—",    pro: "—",    agency: "✓"   },
+  { label: "Repositories", free: "1", starter: "3", pro: "10", agency: "50" },
+  { label: "Scans / month", free: "3", starter: "20", pro: "100", agency: "500" },
+  { label: "AI credits / month", free: "—", starter: "10", pro: "50", agency: "250" },
+  { label: "Template fixes", free: "✓", starter: "✓", pro: "✓", agency: "✓" },
+  { label: "AI-generated fixes", free: "—", starter: "✓", pro: "✓", agency: "✓" },
+  { label: "Architecture analysis", free: "—", starter: "—", pro: "✓", agency: "✓" },
+  { label: "Job history", free: "—", starter: "✓", pro: "✓", agency: "✓" },
+  { label: "Advanced reports", free: "—", starter: "—", pro: "✓", agency: "✓" },
+  { label: "Priority processing", free: "—", starter: "—", pro: "✓", agency: "✓" },
+  { label: "Team dashboard", free: "—", starter: "—", pro: "—", agency: "✓" },
 ];
 
 function PricingPage() {
@@ -82,7 +89,9 @@ function PricingPage() {
                     <span className="font-display text-3xl font-bold">Free</span>
                   ) : (
                     <>
-                      <span className="font-display text-3xl font-bold">¥{plan.priceYen.toLocaleString()}</span>
+                      <span className="font-display text-3xl font-bold">
+                        ¥{plan.priceYen.toLocaleString()}
+                      </span>
                       <span className="ml-1 text-sm text-muted-foreground">/ month</span>
                     </>
                   )}
@@ -188,7 +197,10 @@ function PricingPage() {
                 <tr className="border-b border-border">
                   <th className="pb-3 text-left font-medium text-muted-foreground">Feature</th>
                   {PLAN_ORDER.map((id) => (
-                    <th key={id} className={`pb-3 text-center font-medium ${id === currentPlan ? "text-primary" : "text-muted-foreground"}`}>
+                    <th
+                      key={id}
+                      className={`pb-3 text-center font-medium ${id === currentPlan ? "text-primary" : "text-muted-foreground"}`}
+                    >
                       {PLANS[id].name}
                       {id === currentPlan && <span className="ml-1 text-[10px]">●</span>}
                     </th>
@@ -210,7 +222,11 @@ function PricingPage() {
                           ) : isDash ? (
                             <span className="text-muted-foreground/40">—</span>
                           ) : (
-                            <span className={id === currentPlan ? "font-semibold text-foreground" : ""}>{val}</span>
+                            <span
+                              className={id === currentPlan ? "font-semibold text-foreground" : ""}
+                            >
+                              {val}
+                            </span>
                           )}
                         </td>
                       );
@@ -229,17 +245,19 @@ function PricingPage() {
               <AlertCircle className="h-5 w-5 text-destructive" />
               Unable to continue
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {errorMsg}
-            </DialogDescription>
+            <DialogDescription className="text-muted-foreground">{errorMsg}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setErrorMsg(null)}>Dismiss</Button>
+            <Button variant="outline" onClick={() => setErrorMsg(null)}>
+              Dismiss
+            </Button>
             {errorMsg === "Not authenticated" && (
-              <Button onClick={() => window.location.href = "/api/auth/github"}>Sign in with GitHub</Button>
+              <Button onClick={() => (window.location.href = "/api/auth/github")}>
+                Sign in with GitHub
+              </Button>
             )}
             {errorMsg?.includes("billing portal") && (
-              <Button onClick={() => window.location.href = "/settings"}>Go to Settings</Button>
+              <Button onClick={() => (window.location.href = "/settings")}>Go to Settings</Button>
             )}
           </DialogFooter>
         </DialogContent>

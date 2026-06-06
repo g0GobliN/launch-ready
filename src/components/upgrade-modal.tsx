@@ -3,7 +3,14 @@ import { X, Zap, Check, Loader2, AlertCircle } from "lucide-react";
 import { PLANS, PLAN_ORDER, type PlanId } from "@/lib/plans";
 import { createCheckoutSessionFn } from "@/lib/api/stripe.functions";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 interface UpgradeModalProps {
@@ -13,12 +20,37 @@ interface UpgradeModalProps {
   currentPlan: PlanId;
 }
 
-const REASON_COPY: Record<UpgradeModalProps["reason"], { title: string; description: string; minPlan: PlanId }> = {
-  scan:     { title: "Monthly scan limit reached",       description: "You've used all your scans for this month. Upgrade to scan more repositories.",          minPlan: "starter" },
-  repo:     { title: "Repository limit reached",         description: "You've reached the maximum number of repositories on your current plan.",                 minPlan: "starter" },
-  credits:  { title: "Insufficient AI credits",          description: "You don't have enough AI credits to run this fix. Upgrade to get more credits per month.", minPlan: "starter" },
-  arch:     { title: "Architecture analysis is Pro+",    description: "Deep architecture scanning with AI explanations is available on the Pro plan and above.",   minPlan: "pro"     },
-  "ai-fixes": { title: "AI fixes require Starter+",      description: "AI-generated test files and smart fixes are available from the Starter plan.",             minPlan: "starter" },
+const REASON_COPY: Record<
+  UpgradeModalProps["reason"],
+  { title: string; description: string; minPlan: PlanId }
+> = {
+  scan: {
+    title: "Monthly scan limit reached",
+    description: "You've used all your scans for this month. Upgrade to scan more repositories.",
+    minPlan: "starter",
+  },
+  repo: {
+    title: "Repository limit reached",
+    description: "You've reached the maximum number of repositories on your current plan.",
+    minPlan: "starter",
+  },
+  credits: {
+    title: "Insufficient AI credits",
+    description:
+      "You don't have enough AI credits to run this fix. Upgrade to get more credits per month.",
+    minPlan: "starter",
+  },
+  arch: {
+    title: "Architecture analysis is Pro+",
+    description:
+      "Deep architecture scanning with AI explanations is available on the Pro plan and above.",
+    minPlan: "pro",
+  },
+  "ai-fixes": {
+    title: "AI fixes require Starter+",
+    description: "AI-generated test files and smart fixes are available from the Starter plan.",
+    minPlan: "starter",
+  },
 };
 
 export function UpgradeModal({ open, onClose, reason, currentPlan }: UpgradeModalProps) {
@@ -76,21 +108,30 @@ export function UpgradeModal({ open, onClose, reason, currentPlan }: UpgradeModa
               <div
                 key={plan.id}
                 className={`rounded-xl border p-4 ${
-                  isHighlighted
-                    ? "border-primary/50 bg-primary/5"
-                    : "border-border bg-surface"
+                  isHighlighted ? "border-primary/50 bg-primary/5" : "border-border bg-surface"
                 } ${isCurrent ? "opacity-60" : ""}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-display text-sm font-semibold">{plan.name}</span>
-                  {isCurrent && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Current</span>}
-                  {isHighlighted && !isCurrent && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">Popular</span>}
+                  {isCurrent && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                      Current
+                    </span>
+                  )}
+                  {isHighlighted && !isCurrent && (
+                    <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      Popular
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1">
                   {plan.priceYen === 0 ? (
                     <span className="font-display text-xl font-bold">Free</span>
                   ) : (
-                    <span className="font-display text-xl font-bold">¥{plan.priceYen.toLocaleString()}<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
+                    <span className="font-display text-xl font-bold">
+                      ¥{plan.priceYen.toLocaleString()}
+                      <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                    </span>
                   )}
                 </div>
                 <ul className="mt-3 space-y-1.5">
@@ -136,7 +177,9 @@ export function UpgradeModal({ open, onClose, reason, currentPlan }: UpgradeModa
             <DialogDescription>{errorMsg}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setErrorMsg(null)}>Dismiss</Button>
+            <Button variant="outline" onClick={() => setErrorMsg(null)}>
+              Dismiss
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

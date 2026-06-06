@@ -2,7 +2,12 @@ import { deleteCookie, getCookies, setCookie } from "@tanstack/react-start/serve
 
 const GITHUB_TOKEN_COOKIE = "lr_github_token";
 const USER_INFO_COOKIE = "lr_user";
-const COOKIE_OPTS = { httpOnly: true, sameSite: "lax" as const, path: "/", maxAge: 60 * 60 * 24 * 90 };
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 90,
+};
 
 export type StoredUser = {
   id: string;

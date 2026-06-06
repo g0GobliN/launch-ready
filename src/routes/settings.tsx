@@ -18,7 +18,14 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/settings")({
@@ -36,10 +43,18 @@ function SettingsPage() {
 
   const currentPlan = planData?.plan ?? "free";
   const planDef = PLANS[currentPlan];
-  const scanPct = Math.min(100, ((planData?.monthlyScanUsed ?? 0) / (planData?.monthlyScanLimit ?? 3)) * 100);
-  const creditPct = planDef.aiCreditsPerMonth > 0
-    ? Math.min(100, ((planData?.balance ?? 0) / (planData?.aiCreditsTotal ?? planDef.aiCreditsPerMonth)) * 100)
-    : 0;
+  const scanPct = Math.min(
+    100,
+    ((planData?.monthlyScanUsed ?? 0) / (planData?.monthlyScanLimit ?? 3)) * 100,
+  );
+  const creditPct =
+    planDef.aiCreditsPerMonth > 0
+      ? Math.min(
+          100,
+          ((planData?.balance ?? 0) / (planData?.aiCreditsTotal ?? planDef.aiCreditsPerMonth)) *
+            100,
+        )
+      : 0;
 
   return (
     <div className="min-h-screen">
@@ -47,7 +62,9 @@ function SettingsPage() {
       <div className="mx-auto max-w-3xl px-6 py-12 space-y-6">
         <div>
           <h1 className="font-display text-2xl font-semibold">Settings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your account, plan, and billing.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your account, plan, and billing.
+          </p>
         </div>
 
         {/* Account */}
@@ -58,7 +75,11 @@ function SettingsPage() {
           </div>
           <div className="flex items-center gap-4">
             {user.avatarUrl && (
-              <img src={user.avatarUrl} alt={user.login} className="h-14 w-14 rounded-full border border-border" />
+              <img
+                src={user.avatarUrl}
+                alt={user.login}
+                className="h-14 w-14 rounded-full border border-border"
+              />
             )}
             <div>
               <div className="font-semibold text-lg">@{user.login}</div>
@@ -69,14 +90,17 @@ function SettingsPage() {
                 rel="noopener noreferrer"
                 className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
               >
-                <GithubIcon className="h-3 w-3" /> View on GitHub <ExternalLink className="h-3 w-3" />
+                <GithubIcon className="h-3 w-3" /> View on GitHub{" "}
+                <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           </div>
           <div className="mt-5 pt-5 border-t border-border flex items-center justify-between">
             <div>
               <div className="text-sm font-medium">Sign out</div>
-              <div className="text-xs text-muted-foreground">You can reconnect your GitHub at any time</div>
+              <div className="text-xs text-muted-foreground">
+                You can reconnect your GitHub at any time
+              </div>
             </div>
             <a
               href="/api/auth/logout"
@@ -92,7 +116,9 @@ function SettingsPage() {
           <div className="flex items-center gap-2 mb-5">
             <BarChart3 className="h-4 w-4 text-primary" />
             <h2 className="font-display font-semibold">Plan & Usage</h2>
-            <span className="ml-auto rounded-full bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">{planDef.name}</span>
+            <span className="ml-auto rounded-full bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
+              {planDef.name}
+            </span>
           </div>
 
           <div className="space-y-4">
@@ -169,24 +195,47 @@ function SettingsPage() {
   );
 }
 
-function UsageBar({ label, used, limit, pct, color }: {
-  label: string; used: number; limit: number; pct: number; color: string;
+function UsageBar({
+  label,
+  used,
+  limit,
+  pct,
+  color,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  pct: number;
+  color: string;
 }) {
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium">{used} / {limit}</span>
+        <span className="font-medium">
+          {used} / {limit}
+        </span>
       </div>
       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+        <div
+          className={`h-full rounded-full transition-all ${color}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
 }
 
-function BillingSection({ hasStripe, planName, priceYen, periodEnd }: {
-  hasStripe: boolean; planName: string; priceYen: number; periodEnd: string | null;
+function BillingSection({
+  hasStripe,
+  planName,
+  priceYen,
+  periodEnd,
+}: {
+  hasStripe: boolean;
+  planName: string;
+  priceYen: number;
+  periodEnd: string | null;
 }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -221,7 +270,13 @@ function BillingSection({ hasStripe, planName, priceYen, periodEnd }: {
         {periodEnd && (
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Next billing date</span>
-            <span className="font-semibold">{new Date(periodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            <span className="font-semibold">
+              {new Date(periodEnd).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
           </div>
         )}
       </div>
@@ -234,7 +289,11 @@ function BillingSection({ hasStripe, planName, priceYen, periodEnd }: {
               disabled={loading}
               className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
               {loading ? "Opening portal…" : "Manage billing"}
             </button>
             <p className="text-center text-xs text-muted-foreground">
@@ -258,7 +317,9 @@ function BillingSection({ hasStripe, planName, priceYen, periodEnd }: {
             <DialogDescription>{errorMsg}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setErrorMsg(null)}>Dismiss</Button>
+            <Button variant="outline" onClick={() => setErrorMsg(null)}>
+              Dismiss
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

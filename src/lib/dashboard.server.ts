@@ -9,7 +9,14 @@ export async function loadDashboardData() {
   const storedUser = getStoredUser();
 
   if (!githubToken || !storedUser) {
-    return { user: null, githubRepos: [] as GitHubRepo[], recentScans: [], recentJobs: [], planData: null, creditHistory: [] };
+    return {
+      user: null,
+      githubRepos: [] as GitHubRepo[],
+      recentScans: [],
+      recentJobs: [],
+      planData: null,
+      creditHistory: [],
+    };
   }
 
   const login = storedUser.login;

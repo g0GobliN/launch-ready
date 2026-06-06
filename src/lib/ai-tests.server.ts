@@ -14,7 +14,11 @@ async function ghFetch(token: string, path: string) {
   });
 }
 
-async function fetchFile(token: string, fullName: string, filePath: string): Promise<string | null> {
+async function fetchFile(
+  token: string,
+  fullName: string,
+  filePath: string,
+): Promise<string | null> {
   const res = await ghFetch(token, `/repos/${fullName}/contents/${filePath}`);
   if (!res.ok) return null;
   const data = (await res.json()) as { content?: string; encoding?: string };
@@ -36,25 +40,39 @@ async function fetchRelevantFiles(
 
   if (fixIds.includes("vitest-ai") || fixIds.includes("playwright-ai")) {
     const candidates = [
-      "src/App.tsx", "src/App.jsx",
-      "src/main.tsx", "src/main.jsx",
-      "app/page.tsx", "app/page.jsx",
-      "pages/index.tsx", "pages/index.jsx",
+      "src/App.tsx",
+      "src/App.jsx",
+      "src/main.tsx",
+      "src/main.jsx",
+      "app/page.tsx",
+      "app/page.jsx",
+      "pages/index.tsx",
+      "pages/index.jsx",
     ];
     for (const p of candidates) {
       const c = await fetchFile(token, fullName, p);
-      if (c) { files[p] = c.slice(0, 3000); break; }
+      if (c) {
+        files[p] = c.slice(0, 3000);
+        break;
+      }
     }
   }
 
   if (fixIds.includes("api-tests")) {
     const candidates = [
-      "src/index.ts", "src/app.ts", "src/server.ts",
-      "index.js", "app.js", "server.js",
+      "src/index.ts",
+      "src/app.ts",
+      "src/server.ts",
+      "index.js",
+      "app.js",
+      "server.js",
     ];
     for (const p of candidates) {
       const c = await fetchFile(token, fullName, p);
-      if (c) { files[p] = c.slice(0, 3000); break; }
+      if (c) {
+        files[p] = c.slice(0, 3000);
+        break;
+      }
     }
   }
 

@@ -9,9 +9,14 @@ export const Route = createFileRoute("/repo/$repoId/")({
   head: () => ({ meta: [{ title: "Analysis — LaunchReady" }] }),
   component: RepoPage,
   notFoundComponent: () => <div className="p-10 text-center">Repo not found.</div>,
-  errorComponent: ({ error }) => <div className="p-10 text-center text-critical">{error.message}</div>,
+  errorComponent: ({ error }) => (
+    <div className="p-10 text-center text-critical">{error.message}</div>
+  ),
   loader: async ({ params }) => {
-    const [repo, scan] = await Promise.all([getRepoFn({ data: { repoId: params.repoId } }), getScanFn({ data: { repoId: params.repoId } })]);
+    const [repo, scan] = await Promise.all([
+      getRepoFn({ data: { repoId: params.repoId } }),
+      getScanFn({ data: { repoId: params.repoId } }),
+    ]);
     if (!repo) throw notFound();
     return { repo, scan };
   },
@@ -22,6 +27,28 @@ function RepoPage() {
     repo: NonNullable<Awaited<ReturnType<typeof getRepoFn>>>;
     scan: Awaited<ReturnType<typeof getScanFn>>;
   };
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const categories = useMemo(() => {
+    if (!scan) return {};
+    const by: Record<string, typeof scan.issues> = {};
+    scan.issues.forEach((i: (typeof scan.issues)[number]) => {
+      (by[i.category] ||= []).push(i);
+    });
+    return by;
+  }, [scan]);
+
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) {
+        n.delete(id);
+      } else {
+        n.add(id);
+      }
+      return n;
+    });
 
   if (!scan) {
     return (
@@ -43,29 +70,15 @@ function RepoPage() {
       </div>
     );
   }
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  const categories = useMemo(() => {
-    const by: Record<string, typeof scan.issues> = {};
-    scan.issues.forEach((i: typeof scan.issues[number]) => {
-      (by[i.category] ||= []).push(i);
-    });
-    return by;
-  }, [scan]);
-
-  const toggle = (id: string) =>
-    setSelected((s) => {
-      const n = new Set(s);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
 
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/dashboard" className="hover:text-foreground">Dashboard</Link>
+          <Link to="/dashboard" className="hover:text-foreground">
+            Dashboard
+          </Link>
           <span>/</span>
           <span className="font-mono text-foreground">{repo.full_name}</span>
         </div>
@@ -86,7 +99,9 @@ function RepoPage() {
               <Row k="Issues" v={`${scan.issues.length} found`} />
             </div>
             <div className="mt-6 rounded-lg border border-border bg-surface p-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> {repo.full_name}</div>
+              <div className="flex items-center gap-1.5">
+                <Github className="h-3.5 w-3.5" /> {repo.full_name}
+              </div>
             </div>
             <Link
               to="/repo/$repoId/arch"
@@ -104,25 +119,32 @@ function RepoPage() {
             <div className="flex items-end justify-between">
               <div>
                 <h1 className="font-display text-2xl font-semibold">Missing items</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Select the fixes you want bundled into a single pull request.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Select the fixes you want bundled into a single pull request.
+                </p>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {selected.size} selected
-              </div>
+              <div className="text-sm text-muted-foreground">{selected.size} selected</div>
             </div>
 
             <div className="mt-6 space-y-6">
               {Object.entries(categories).map(([cat, items]) => (
                 <div key={cat}>
                   <div className="mb-2 flex items-center justify-between">
-                    <h2 className="font-display text-sm uppercase tracking-widest text-muted-foreground">{cat}</h2>
-                    <span className="text-xs text-muted-foreground">{items.length} item{items.length > 1 ? "s" : ""}</span>
+                    <h2 className="font-display text-sm uppercase tracking-widest text-muted-foreground">
+                      {cat}
+                    </h2>
+                    <span className="text-xs text-muted-foreground">
+                      {items.length} item{items.length > 1 ? "s" : ""}
+                    </span>
                   </div>
                   <div className="divide-y divide-border rounded-xl border border-border bg-card">
-                    {items.map((i: typeof scan.issues[number]) => {
+                    {items.map((i: (typeof scan.issues)[number]) => {
                       const isSel = selected.has(i.fixId);
                       return (
-                        <label key={i.id} className="flex cursor-pointer items-start gap-4 p-4 transition hover:bg-surface">
+                        <label
+                          key={i.id}
+                          className="flex cursor-pointer items-start gap-4 p-4 transition hover:bg-surface"
+                        >
                           <input
                             type="checkbox"
                             checked={isSel}

@@ -3,7 +3,13 @@ import { loadAdminRevenueFn, runPromotionFn } from "@/lib/api/admin.functions";
 import { PLANS } from "@/lib/plans";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -15,7 +21,11 @@ export const Route = createFileRoute("/admin/promotions")({
 
 type PaidPlanId = "starter" | "pro" | "agency";
 
-const PLAN_COLORS: Record<PaidPlanId, string> = { starter: "#22c55e", pro: "#3b82f6", agency: "#f59e0b" };
+const PLAN_COLORS: Record<PaidPlanId, string> = {
+  starter: "#22c55e",
+  pro: "#3b82f6",
+  agency: "#f59e0b",
+};
 
 function AdminPromotions() {
   const { planRevenue } = Route.useLoaderData();
@@ -58,20 +68,39 @@ function AdminPromotions() {
     }
   }
 
-  const canSubmit = affectedCount() > 0 && (promoType !== "bonus_credits" || (!!promoAmount && parseInt(promoAmount) >= 1));
+  const canSubmit =
+    affectedCount() > 0 &&
+    (promoType !== "bonus_credits" || (!!promoAmount && parseInt(promoAmount) >= 1));
 
   const planTargets = [
-    { value: "all",     label: "All paid", count: totalPaid,                                                                                    color: undefined },
-    { value: "starter", label: "Starter",  count: planRevenue.find((p) => p.plan === PLANS.starter.name)?.users ?? 0,  color: PLAN_COLORS.starter },
-    { value: "pro",     label: "Pro",      count: planRevenue.find((p) => p.plan === PLANS.pro.name)?.users ?? 0,      color: PLAN_COLORS.pro },
-    { value: "agency",  label: "Agency",   count: planRevenue.find((p) => p.plan === PLANS.agency.name)?.users ?? 0,   color: PLAN_COLORS.agency },
+    { value: "all", label: "All paid", count: totalPaid, color: undefined },
+    {
+      value: "starter",
+      label: "Starter",
+      count: planRevenue.find((p) => p.plan === PLANS.starter.name)?.users ?? 0,
+      color: PLAN_COLORS.starter,
+    },
+    {
+      value: "pro",
+      label: "Pro",
+      count: planRevenue.find((p) => p.plan === PLANS.pro.name)?.users ?? 0,
+      color: PLAN_COLORS.pro,
+    },
+    {
+      value: "agency",
+      label: "Agency",
+      count: planRevenue.find((p) => p.plan === PLANS.agency.name)?.users ?? 0,
+      color: PLAN_COLORS.agency,
+    },
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-xl font-bold">Promotions</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Reward paying users with bonus credits or a free scan reset.</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Reward paying users with bonus credits or a free scan reset.
+        </p>
       </div>
 
       <div className="rounded-xl border border-border bg-card divide-y divide-border">
@@ -79,10 +108,12 @@ function AdminPromotions() {
         <div className="p-5 space-y-2">
           <p className="text-xs font-medium text-muted-foreground">Reward type</p>
           <div className="flex gap-2">
-            {([
-              { value: "bonus_credits", label: "Bonus AI Credits" },
-              { value: "reset_scans",   label: "Reset Scan Limit"  },
-            ] as const).map((opt) => (
+            {(
+              [
+                { value: "bonus_credits", label: "Bonus AI Credits" },
+                { value: "reset_scans", label: "Reset Scan Limit" },
+              ] as const
+            ).map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setPromoType(opt.value)}
@@ -104,9 +135,18 @@ function AdminPromotions() {
                 onClick={() => setPromoPlan(opt.value)}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition cursor-pointer ${promoPlan === opt.value ? "border-primary bg-primary/10 text-foreground font-medium" : "border-border text-muted-foreground hover:bg-muted"}`}
               >
-                {opt.color && <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: opt.color }} />}
+                {opt.color && (
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: opt.color }}
+                  />
+                )}
                 {opt.label}
-                <span className={`text-xs ${promoPlan === opt.value ? "text-primary/70" : "text-muted-foreground/50"}`}>{opt.count}</span>
+                <span
+                  className={`text-xs ${promoPlan === opt.value ? "text-primary/70" : "text-muted-foreground/50"}`}
+                >
+                  {opt.count}
+                </span>
               </button>
             ))}
           </div>
@@ -130,7 +170,9 @@ function AdminPromotions() {
               </div>
             )}
             <div className="flex-1 min-w-48 space-y-1.5">
-              <label className="text-xs text-muted-foreground">Note <span className="opacity-50">(optional)</span></label>
+              <label className="text-xs text-muted-foreground">
+                Note <span className="opacity-50">(optional)</span>
+              </label>
               <Input
                 value={promoNote}
                 onChange={(e) => setPromoNote(e.target.value)}
@@ -144,14 +186,26 @@ function AdminPromotions() {
         {/* Action bar */}
         <div className="flex items-center justify-between gap-4 px-5 py-4 bg-muted/20">
           <p className="text-sm text-muted-foreground">
-            {promoType === "bonus_credits"
-              ? <><strong className="text-foreground">+{promoAmount || 0}</strong> AI credits each</>
-              : <>Scan limit reset to <strong className="text-foreground">0</strong></>
-            }
+            {promoType === "bonus_credits" ? (
+              <>
+                <strong className="text-foreground">+{promoAmount || 0}</strong> AI credits each
+              </>
+            ) : (
+              <>
+                Scan limit reset to <strong className="text-foreground">0</strong>
+              </>
+            )}
             {" · "}
             <strong className="text-foreground">{affectedCount()} users</strong> affected
           </p>
-          <Button onClick={() => { setResult(null); setError(null); setConfirmOpen(true); }} disabled={!canSubmit}>
+          <Button
+            onClick={() => {
+              setResult(null);
+              setError(null);
+              setConfirmOpen(true);
+            }}
+            disabled={!canSubmit}
+          >
             Run Promotion
           </Button>
         </div>
@@ -160,20 +214,36 @@ function AdminPromotions() {
       {/* Confirm */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Confirm promotion</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Confirm promotion</DialogTitle>
+          </DialogHeader>
           <div className="space-y-1.5 py-2 text-sm text-muted-foreground">
-            <p><strong className="text-foreground">{affectedCount()} users</strong> will be affected.</p>
-            {promoType === "bonus_credits" && <p>Each receives <strong className="text-foreground">+{promoAmount} AI credits</strong>.</p>}
-            {promoType === "reset_scans" && <p>Monthly scan usage reset to <strong className="text-foreground">0</strong>.</p>}
+            <p>
+              <strong className="text-foreground">{affectedCount()} users</strong> will be affected.
+            </p>
+            {promoType === "bonus_credits" && (
+              <p>
+                Each receives <strong className="text-foreground">+{promoAmount} AI credits</strong>
+                .
+              </p>
+            )}
+            {promoType === "reset_scans" && (
+              <p>
+                Monthly scan usage reset to <strong className="text-foreground">0</strong>.
+              </p>
+            )}
             {promoNote && <p className="text-xs">Note: "{promoNote}"</p>}
             {error && (
               <p className="flex items-center gap-1.5 text-destructive text-xs pt-1">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {error}
               </p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={running}>Cancel</Button>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={running}>
+              Cancel
+            </Button>
             <Button onClick={runPromotion} disabled={running}>
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
             </Button>
@@ -184,9 +254,15 @@ function AdminPromotions() {
       {/* Success */}
       <Dialog open={!!result} onOpenChange={() => setResult(null)}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Done</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">Applied to <strong className="text-foreground">{result?.affected} users</strong>.</p>
-          <DialogFooter><Button onClick={() => setResult(null)}>Close</Button></DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Done</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Applied to <strong className="text-foreground">{result?.affected} users</strong>.
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setResult(null)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

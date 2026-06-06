@@ -37,11 +37,21 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-  const { user, githubRepos, recentScans, recentJobs, planData, creditHistory } = Route.useLoaderData();
+  const { user, githubRepos, recentScans, recentJobs, planData, creditHistory } =
+    Route.useLoaderData();
 
   const { error } = Route.useSearch();
   if (!user) return <ConnectPage authError={error} />;
-  return <RepoList user={user} repos={githubRepos} recentScans={recentScans} recentJobs={recentJobs ?? []} planData={planData} creditHistory={creditHistory ?? []} />;
+  return (
+    <RepoList
+      user={user}
+      repos={githubRepos}
+      recentScans={recentScans}
+      recentJobs={recentJobs ?? []}
+      planData={planData}
+      creditHistory={creditHistory ?? []}
+    />
+  );
 }
 
 function ConnectPage({ authError }: { authError?: string }) {
@@ -55,8 +65,8 @@ function ConnectPage({ authError }: { authError?: string }) {
         </div>
         <h1 className="mt-5 font-display text-2xl font-semibold">Connect your GitHub account</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Authorize LaunchReady to read your repositories. We never commit to your branches
-          without your review.
+          Authorize LaunchReady to read your repositories. We never commit to your branches without
+          your review.
         </p>
         {authError && (
           <p className="mt-4 rounded-md border border-critical/30 bg-critical/10 px-3 py-2 text-sm text-critical">
@@ -71,13 +81,26 @@ function ConnectPage({ authError }: { authError?: string }) {
           {connecting ? (
             <>
               <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
               </svg>
               Connecting…
             </>
           ) : (
-            <><GithubIcon className="h-4 w-4" /> Connect GitHub</>
+            <>
+              <GithubIcon className="h-4 w-4" /> Connect GitHub
+            </>
           )}
         </a>
         <p className="mt-4 text-xs text-muted-foreground">
@@ -90,10 +113,10 @@ function ConnectPage({ authError }: { authError?: string }) {
 }
 
 const JOB_STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  pending:   { label: "Pending",   className: "text-warning" },
-  running:   { label: "Running",   className: "text-primary" },
+  pending: { label: "Pending", className: "text-warning" },
+  running: { label: "Running", className: "text-primary" },
   completed: { label: "Completed", className: "text-success" },
-  failed:    { label: "Failed",    className: "text-critical" },
+  failed: { label: "Failed", className: "text-critical" },
   cancelled: { label: "Cancelled", className: "text-muted-foreground" },
 };
 
@@ -129,9 +152,7 @@ function RepoList({
     }
   }, []);
 
-  const filtered = repos.filter((r) =>
-    r.full_name.toLowerCase().includes(q.toLowerCase()),
-  );
+  const filtered = repos.filter((r) => r.full_name.toLowerCase().includes(q.toLowerCase()));
 
   async function analyzeRepo(repo: GitHubRepo) {
     setScanning(repo.id);
@@ -155,9 +176,13 @@ function RepoList({
       await router.navigate({ to: "/repo/$repoId", params: { repoId } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Scan failed. Please try again.";
-      if (msg.startsWith("LIMIT:scan:")) { setUpgradeModal("scan"); }
-      else if (msg.startsWith("LIMIT:repo:")) { setUpgradeModal("repo"); }
-      else { setScanError(msg); }
+      if (msg.startsWith("LIMIT:scan:")) {
+        setUpgradeModal("scan");
+      } else if (msg.startsWith("LIMIT:repo:")) {
+        setUpgradeModal("repo");
+      } else {
+        setScanError(msg);
+      }
     } finally {
       setScanning(null);
     }
@@ -213,11 +238,7 @@ function RepoList({
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm">
               {user.avatarUrl && (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.login}
-                  className="h-5 w-5 rounded-full"
-                />
+                <img src={user.avatarUrl} alt={user.login} className="h-5 w-5 rounded-full" />
               )}
               <GithubIcon className="h-4 w-4 text-primary" />
               <span className="hidden sm:inline">
@@ -315,7 +336,9 @@ function RepoList({
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-primary" />
                 <h3 className="font-display text-sm font-semibold">{planDef.name} Plan</h3>
-                <Link to="/pricing" className="ml-auto text-xs text-primary hover:underline">Upgrade</Link>
+                <Link to="/pricing" className="ml-auto text-xs text-primary hover:underline">
+                  Upgrade
+                </Link>
               </div>
 
               {/* Scan usage */}
@@ -323,12 +346,17 @@ function RepoList({
                 <div>
                   <div className="mb-1 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Scans this month</span>
-                    <span className="font-medium">{planData?.monthlyScanUsed ?? 0} / {planData?.monthlyScanLimit ?? planDef.scansPerMonth}</span>
+                    <span className="font-medium">
+                      {planData?.monthlyScanUsed ?? 0} /{" "}
+                      {planData?.monthlyScanLimit ?? planDef.scansPerMonth}
+                    </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${Math.min(100, ((planData?.monthlyScanUsed ?? 0) / (planData?.monthlyScanLimit ?? planDef.scansPerMonth)) * 100)}%` }}
+                      style={{
+                        width: `${Math.min(100, ((planData?.monthlyScanUsed ?? 0) / (planData?.monthlyScanLimit ?? planDef.scansPerMonth)) * 100)}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -340,14 +368,19 @@ function RepoList({
                     {planDef.aiCreditsPerMonth === 0 ? (
                       <span className="text-muted-foreground">Not available</span>
                     ) : (
-                      <span className="font-medium">{planData?.balance ?? 0} / {planData?.aiCreditsTotal ?? planDef.aiCreditsPerMonth}</span>
+                      <span className="font-medium">
+                        {planData?.balance ?? 0} /{" "}
+                        {planData?.aiCreditsTotal ?? planDef.aiCreditsPerMonth}
+                      </span>
                     )}
                   </div>
                   {planDef.aiCreditsPerMonth > 0 && (
                     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full bg-accent transition-all"
-                        style={{ width: `${Math.min(100, ((planData?.balance ?? 0) / (planData?.aiCreditsTotal ?? planDef.aiCreditsPerMonth)) * 100)}%` }}
+                        style={{
+                          width: `${Math.min(100, ((planData?.balance ?? 0) / (planData?.aiCreditsTotal ?? planDef.aiCreditsPerMonth)) * 100)}%`,
+                        }}
                       />
                     </div>
                   )}
@@ -368,21 +401,40 @@ function RepoList({
                   </div>
                   <div className="space-y-0">
                     {creditHistory.slice(0, 4).map((tx) => {
-                      const label = tx.type === "reset" ? "Monthly reset" : tx.type === "refund" ? "Refunded" : tx.type === "grant" ? "Grant" : "Used";
+                      const label =
+                        tx.type === "reset"
+                          ? "Monthly reset"
+                          : tx.type === "refund"
+                            ? "Refunded"
+                            : tx.type === "grant"
+                              ? "Grant"
+                              : "Used";
                       const sub = tx.type === "grant" && tx.reason ? tx.reason : null;
                       return (
-                        <div key={tx.id} className="flex items-start justify-between gap-2 py-1 text-xs">
+                        <div
+                          key={tx.id}
+                          className="flex items-start justify-between gap-2 py-1 text-xs"
+                        >
                           <div className="flex items-start gap-1.5 text-muted-foreground min-w-0">
-                            {tx.amount < 0
-                              ? <TrendingDown className="h-3 w-3 text-critical mt-0.5 shrink-0" />
-                              : <TrendingUp className="h-3 w-3 text-success mt-0.5 shrink-0" />}
+                            {tx.amount < 0 ? (
+                              <TrendingDown className="h-3 w-3 text-critical mt-0.5 shrink-0" />
+                            ) : (
+                              <TrendingUp className="h-3 w-3 text-success mt-0.5 shrink-0" />
+                            )}
                             <div className="min-w-0">
                               <div>{label}</div>
-                              {sub && <div className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">{sub}</div>}
+                              {sub && (
+                                <div className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">
+                                  {sub}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <span className={`font-medium tabular-nums shrink-0 ${tx.amount < 0 ? "text-critical" : "text-success"}`}>
-                            {tx.amount > 0 ? "+" : ""}{tx.amount}
+                          <span
+                            className={`font-medium tabular-nums shrink-0 ${tx.amount < 0 ? "text-critical" : "text-success"}`}
+                          >
+                            {tx.amount > 0 ? "+" : ""}
+                            {tx.amount}
                           </span>
                         </div>
                       );
@@ -458,7 +510,9 @@ function RepoList({
                   { n: "04", t: "Get a PR", d: "Review and merge — we never touch main." },
                 ].map((s) => (
                   <li key={s.n} className="flex items-start gap-2.5 text-sm">
-                    <span className="mt-px font-mono text-[10px] text-primary/60 shrink-0">{s.n}</span>
+                    <span className="mt-px font-mono text-[10px] text-primary/60 shrink-0">
+                      {s.n}
+                    </span>
                     <div>
                       <span className="font-medium">{s.t}</span>
                       <span className="ml-1.5 text-muted-foreground">{s.d}</span>

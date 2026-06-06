@@ -3,7 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getSessionUserFn } from "@/lib/api/credits.functions";
 import { Settings, LayoutDashboard, ArrowLeft } from "lucide-react";
 
-const ADMINS = ((import.meta.env.VITE_ADMIN_GITHUB_LOGIN as string) ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+const ADMINS = ((import.meta.env.VITE_ADMIN_GITHUB_LOGIN as string) ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 interface SiteHeaderProps {
   user?: { login: string; avatarUrl: string } | null;
@@ -18,14 +21,27 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
   const user = userProp ?? sessionUser;
   const path = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = path.startsWith("/admin");
-  const isApp = isAdmin || path.startsWith("/dashboard") || path.startsWith("/repo") || path.startsWith("/pr") || path.startsWith("/settings");
+  const isApp =
+    isAdmin ||
+    path.startsWith("/dashboard") ||
+    path.startsWith("/repo") ||
+    path.startsWith("/pr") ||
+    path.startsWith("/settings");
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 font-display text-base font-semibold shrink-0">
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-display text-base font-semibold shrink-0"
+        >
           <div className="h-9 w-9 overflow-hidden">
-            <img src="/logo/logoo.png" alt="" className="w-full h-full" style={{ transform: "scale(0.8)", transformOrigin: "center" }} />
+            <img
+              src="/logo/logoo.png"
+              alt=""
+              className="w-full h-full"
+              style={{ transform: "scale(0.8)", transformOrigin: "center" }}
+            />
           </div>
           LaunchReady
         </Link>
@@ -34,15 +50,43 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
           <nav />
         ) : !isApp ? (
           <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-            <Link to="/workflow" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>How it works</Link>
-            <a href="/#features" className="hover:text-foreground">Features</a>
-            <Link to="/pricing" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Pricing</Link>
-            <a href="/#faq" className="hover:text-foreground">FAQ</a>
+            <Link
+              to="/workflow"
+              className="hover:text-foreground"
+              activeProps={{ className: "text-foreground" }}
+            >
+              How it works
+            </Link>
+            <a href="/#features" className="hover:text-foreground">
+              Features
+            </a>
+            <Link
+              to="/pricing"
+              className="hover:text-foreground"
+              activeProps={{ className: "text-foreground" }}
+            >
+              Pricing
+            </Link>
+            <a href="/#faq" className="hover:text-foreground">
+              FAQ
+            </a>
           </nav>
         ) : (
           <nav className="hidden sm:flex items-center gap-5 text-sm text-muted-foreground">
-            <Link to="/dashboard" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Dashboard</Link>
-            <Link to="/pricing" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>Pricing</Link>
+            <Link
+              to="/dashboard"
+              className="hover:text-foreground"
+              activeProps={{ className: "text-foreground" }}
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/pricing"
+              className="hover:text-foreground"
+              activeProps={{ className: "text-foreground" }}
+            >
+              Pricing
+            </Link>
           </nav>
         )}
 

@@ -4,10 +4,14 @@ import { ChevronDown, FilePlus2, FileEdit } from "lucide-react";
 
 function lineColor(type: string) {
   switch (type) {
-    case "add": return "bg-success/10 border-l-2 border-success/60";
-    case "del": return "bg-critical/10 border-l-2 border-critical/60";
-    case "hunk": return "bg-accent/10 text-accent";
-    default: return "";
+    case "add":
+      return "bg-success/10 border-l-2 border-success/60";
+    case "del":
+      return "bg-critical/10 border-l-2 border-critical/60";
+    case "hunk":
+      return "bg-accent/10 text-accent";
+    default:
+      return "";
   }
 }
 
@@ -30,7 +34,9 @@ export function DiffView({ diff }: { diff: FileDiff }) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-3 border-b border-border bg-surface px-4 py-2.5 text-left hover:bg-muted"
       >
-        <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${open ? "" : "-rotate-90"}`} />
+        <ChevronDown
+          className={`h-4 w-4 text-muted-foreground transition ${open ? "" : "-rotate-90"}`}
+        />
         <Icon className={`h-4 w-4 ${iconColor}`} />
         <span className="flex-1 truncate font-mono text-sm">{diff.path}</span>
         <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -45,9 +51,15 @@ export function DiffView({ diff }: { diff: FileDiff }) {
             <tbody>
               {diff.lines.map((l, idx) => (
                 <tr key={idx} className={lineColor(l.type)}>
-                  <td className="select-none px-2 py-0.5 text-right text-muted-foreground/60 w-10">{l.oldNo ?? ""}</td>
-                  <td className="select-none px-2 py-0.5 text-right text-muted-foreground/60 w-10">{l.newNo ?? ""}</td>
-                  <td className="select-none px-2 py-0.5 text-muted-foreground w-5">{lineSign(l.type)}</td>
+                  <td className="select-none px-2 py-0.5 text-right text-muted-foreground/60 w-10">
+                    {l.oldNo ?? ""}
+                  </td>
+                  <td className="select-none px-2 py-0.5 text-right text-muted-foreground/60 w-10">
+                    {l.newNo ?? ""}
+                  </td>
+                  <td className="select-none px-2 py-0.5 text-muted-foreground w-5">
+                    {lineSign(l.type)}
+                  </td>
                   <td className="whitespace-pre px-2 py-0.5">{l.text || " "}</td>
                 </tr>
               ))}

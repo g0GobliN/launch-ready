@@ -2,18 +2,50 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { PLANS, PLAN_ORDER } from "@/lib/plans";
 import { createCheckoutSessionFn } from "@/lib/api/stripe.functions";
-import { ArrowRight, Check, CheckCircle2, GitPullRequest, GithubIcon, Shield, TestTube2, Workflow, FileCode2, Boxes, Activity, Sparkles, Zap, Clock, Loader2, AlertCircle } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  GitPullRequest,
+  GithubIcon,
+  Shield,
+  TestTube2,
+  Workflow,
+  FileCode2,
+  Boxes,
+  Activity,
+  Sparkles,
+  Zap,
+  Clock,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "LaunchReady — Turn your AI-built app into a production-ready project" },
-      { name: "description", content: "Connect your GitHub repo, find missing engineering setup, and ship production-ready pull requests in one click." },
+      {
+        name: "description",
+        content:
+          "Connect your GitHub repo, find missing engineering setup, and ship production-ready pull requests in one click.",
+      },
       { property: "og:title", content: "LaunchReady — Production-ready PRs for AI-built apps" },
-      { property: "og:description", content: "Cursor and other AI tools build the first 80%. LaunchReady finishes the boring production setup." },
+      {
+        property: "og:description",
+        content:
+          "Cursor and other AI tools build the first 80%. LaunchReady finishes the boring production setup.",
+      },
     ],
   }),
   component: Landing,
@@ -47,17 +79,24 @@ function Hero() {
             For Cursor, Bolt & Copilot builders
           </div>
           <h1 className="text-balance font-display text-5xl font-semibold leading-[1.05] sm:text-6xl md:text-7xl">
-            Your AI built the app.{" "}
-            <span className="text-gradient">LaunchReady</span> makes it production-ready.
+            Your AI built the app. <span className="text-gradient">LaunchReady</span> makes it
+            production-ready.
           </h1>
           <p className="mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
-            Connect your GitHub repo, find missing engineering setup, and create production-ready pull requests in one click.
+            Connect your GitHub repo, find missing engineering setup, and create production-ready
+            pull requests in one click.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground glow-primary transition hover:opacity-90">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground glow-primary transition hover:opacity-90"
+            >
               <GithubIcon className="h-4 w-4" /> Connect GitHub
             </Link>
-            <Link to="/demo" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
+            <Link
+              to="/demo"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted"
+            >
               View Demo <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -80,12 +119,16 @@ function HeroPreview() {
           <span className="h-2.5 w-2.5 rounded-full bg-critical/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-          <div className="ml-3 font-mono text-xs text-muted-foreground">launchreadyy.xyz/repo/indie-saas</div>
+          <div className="ml-3 font-mono text-xs text-muted-foreground">
+            launchreadyy.xyz/repo/indie-saas
+          </div>
         </div>
         <div className="grid gap-4 rounded-lg bg-background p-6 md:grid-cols-[200px_1fr]">
           <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-surface p-4">
             <div className="font-display text-5xl font-semibold text-warning">62</div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Readiness</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Readiness
+            </div>
           </div>
           <div className="space-y-2">
             {[
@@ -95,9 +138,14 @@ function HeroPreview() {
               { t: "No Dockerfile for deployment", s: "Medium", c: "text-accent" },
               { t: "ESLint config not found", s: "High", c: "text-warning" },
             ].map((i) => (
-              <div key={i.t} className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm">
+              <div
+                key={i.t}
+                className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm"
+              >
                 <span>{i.t}</span>
-                <span className={`text-[10px] font-medium uppercase tracking-wider ${i.c}`}>{i.s}</span>
+                <span className={`text-[10px] font-medium uppercase tracking-wider ${i.c}`}>
+                  {i.s}
+                </span>
               </div>
             ))}
             <div className="flex justify-end pt-2">
@@ -118,10 +166,12 @@ function Problem() {
       <div className="mx-auto max-w-5xl px-6 text-center">
         <p className="text-xs uppercase tracking-widest text-primary">The problem</p>
         <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
-          AI ships features. <span className="text-muted-foreground">Nobody ships the boring stuff.</span>
+          AI ships features.{" "}
+          <span className="text-muted-foreground">Nobody ships the boring stuff.</span>
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          AI tools build the first 80% — a working app. The last 20% — CI, tests, env files, monitoring, Docker — is what makes it actually shippable. That part rarely gets done.
+          AI tools build the first 80% — a working app. The last 20% — CI, tests, env files,
+          monitoring, Docker — is what makes it actually shippable. That part rarely gets done.
         </p>
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           {[
@@ -142,23 +192,43 @@ function Problem() {
 
 function HowItWorks() {
   const steps = [
-    { i: <GithubIcon className="h-5 w-5" />, t: "Connect GitHub", d: "One-click OAuth. We only read your repos — no surprise commits." },
-    { i: <Activity className="h-5 w-5" />, t: "Scan repo", d: "We analyze your stack and produce a 0–100 readiness score." },
-    { i: <CheckCircle2 className="h-5 w-5" />, t: "Pick fixes", d: "Choose what to add: Vitest, CI, Docker, monitoring, and more." },
-    { i: <GitPullRequest className="h-5 w-5" />, t: "Get a PR", d: "A clean pull request lands on a new branch. Review and merge." },
+    {
+      i: <GithubIcon className="h-5 w-5" />,
+      t: "Connect GitHub",
+      d: "One-click OAuth. We only read your repos — no surprise commits.",
+    },
+    {
+      i: <Activity className="h-5 w-5" />,
+      t: "Scan repo",
+      d: "We analyze your stack and produce a 0–100 readiness score.",
+    },
+    {
+      i: <CheckCircle2 className="h-5 w-5" />,
+      t: "Pick fixes",
+      d: "Choose what to add: Vitest, CI, Docker, monitoring, and more.",
+    },
+    {
+      i: <GitPullRequest className="h-5 w-5" />,
+      t: "Get a PR",
+      d: "A clean pull request lands on a new branch. Review and merge.",
+    },
   ];
   return (
     <section id="how" className="border-b border-border/50 py-24">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12 text-center">
           <p className="text-xs uppercase tracking-widest text-primary">How it works</p>
-          <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">From repo to production-ready in 4 steps</h2>
+          <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
+            From repo to production-ready in 4 steps
+          </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-4">
           {steps.map((s, i) => (
             <div key={s.t} className="relative rounded-xl border border-border bg-card p-6">
               <div className="font-mono text-xs text-muted-foreground">0{i + 1}</div>
-              <div className="mt-3 grid h-9 w-9 place-items-center rounded-md bg-primary/15 text-primary">{s.i}</div>
+              <div className="mt-3 grid h-9 w-9 place-items-center rounded-md bg-primary/15 text-primary">
+                {s.i}
+              </div>
               <h3 className="mt-4 font-display text-lg font-semibold">{s.t}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{s.d}</p>
             </div>
@@ -173,7 +243,11 @@ function Features() {
   const fs = [
     { i: <TestTube2 />, t: "Testing setup", d: "Vitest + Playwright wired up with sample tests." },
     { i: <Workflow />, t: "GitHub Actions CI", d: "Lint, typecheck, and tests on every push." },
-    { i: <Shield />, t: "Security baseline", d: ".env.example, secret scanning hints, dependency audit." },
+    {
+      i: <Shield />,
+      t: "Security baseline",
+      d: ".env.example, secret scanning hints, dependency audit.",
+    },
     { i: <FileCode2 />, t: "Code quality", d: "ESLint + Prettier with sensible team defaults." },
     { i: <Boxes />, t: "Deployment", d: "Dockerfile and deploy guides for Vercel, Fly, Railway." },
     { i: <Activity />, t: "Monitoring", d: "Sentry error tracking with one config file." },
@@ -183,11 +257,16 @@ function Features() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12">
           <p className="text-xs uppercase tracking-widest text-primary">What you get</p>
-          <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold sm:text-4xl">Everything senior engineers add on day one.</h2>
+          <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold sm:text-4xl">
+            Everything senior engineers add on day one.
+          </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {fs.map((f) => (
-            <div key={f.t} className="group rounded-xl border border-border bg-card p-6 transition hover:border-primary/40">
+            <div
+              key={f.t}
+              className="group rounded-xl border border-border bg-card p-6 transition hover:border-primary/40"
+            >
               <div className="grid h-10 w-10 place-items-center rounded-md bg-surface text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
                 {f.i}
               </div>
@@ -223,8 +302,12 @@ function Pricing() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12 text-center">
           <p className="text-xs uppercase tracking-widest text-primary">Pricing</p>
-          <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Simple, builder-friendly pricing</h2>
-          <p className="mt-3 text-muted-foreground">Built for indie developers, vibe coders, and solo founders.</p>
+          <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
+            Simple, builder-friendly pricing
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Built for indie developers, vibe coders, and solo founders.
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PLAN_ORDER.map((planId) => {
@@ -253,7 +336,9 @@ function Pricing() {
                     <span className="font-display text-3xl font-bold">Free</span>
                   ) : (
                     <>
-                      <span className="font-display text-3xl font-bold">¥{plan.priceYen.toLocaleString()}</span>
+                      <span className="font-display text-3xl font-bold">
+                        ¥{plan.priceYen.toLocaleString()}
+                      </span>
                       <span className="ml-1 text-sm text-muted-foreground">/ month</span>
                     </>
                   )}
@@ -297,7 +382,10 @@ function Pricing() {
           })}
         </div>
         <div className="mt-6 text-center">
-          <Link to="/pricing" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/pricing"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             View full plan comparison <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -313,12 +401,16 @@ function Pricing() {
             <DialogDescription>{errorMsg}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setErrorMsg(null)}>Dismiss</Button>
+            <Button variant="outline" onClick={() => setErrorMsg(null)}>
+              Dismiss
+            </Button>
             {errorMsg === "Not authenticated" && (
-              <Button onClick={() => window.location.href = "/api/auth/github"}>Sign in with GitHub</Button>
+              <Button onClick={() => (window.location.href = "/api/auth/github")}>
+                Sign in with GitHub
+              </Button>
             )}
             {errorMsg?.includes("billing portal") && (
-              <Button onClick={() => window.location.href = "/settings"}>Go to Settings</Button>
+              <Button onClick={() => (window.location.href = "/settings")}>Go to Settings</Button>
             )}
           </DialogFooter>
         </DialogContent>
@@ -329,18 +421,35 @@ function Pricing() {
 
 function FAQ() {
   const qs = [
-    { q: "Will LaunchReady push to my main branch?", a: "Never. We always create a new branch and open a pull request for you to review. You stay in full control — nothing merges without your approval." },
-    { q: "What permissions does the GitHub App need?", a: "Read access to repo contents and write access for branches & pull requests on the repos you select. We request the minimum permissions required and never access repos you haven't connected." },
-    { q: "Does it work with Next.js, Vite, and Express?", a: "Yes. We detect the framework and tailor fixes to your stack. Support for Next.js, React Vite, and Express is fully production-tested." },
-    { q: "Can I use it on private repos?", a: "Pro and Agency plans support private repositories. Free plan is limited to public repos." },
-    { q: "Is my code ever stored?", a: "No. We analyze repo metadata and configs in-memory — code is never persisted to our servers or databases." },
+    {
+      q: "Will LaunchReady push to my main branch?",
+      a: "Never. We always create a new branch and open a pull request for you to review. You stay in full control — nothing merges without your approval.",
+    },
+    {
+      q: "What permissions does the GitHub App need?",
+      a: "Read access to repo contents and write access for branches & pull requests on the repos you select. We request the minimum permissions required and never access repos you haven't connected.",
+    },
+    {
+      q: "Does it work with Next.js, Vite, and Express?",
+      a: "Yes. We detect the framework and tailor fixes to your stack. Support for Next.js, React Vite, and Express is fully production-tested.",
+    },
+    {
+      q: "Can I use it on private repos?",
+      a: "Pro and Agency plans support private repositories. Free plan is limited to public repos.",
+    },
+    {
+      q: "Is my code ever stored?",
+      a: "No. We analyze repo metadata and configs in-memory — code is never persisted to our servers or databases.",
+    },
   ];
   return (
     <section id="faq" className="border-b border-border/50 py-24">
       <div className="mx-auto max-w-3xl px-6">
         <div className="mb-10 text-center">
           <p className="text-xs uppercase tracking-widest text-primary">FAQ</p>
-          <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Questions, answered</h2>
+          <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
+            Questions, answered
+          </h2>
         </div>
         <div className="divide-y divide-border rounded-xl border border-border bg-card">
           {qs.map((x) => (
@@ -363,22 +472,36 @@ function CTA() {
     <section className="relative overflow-hidden py-24">
       <div className="absolute inset-0 grid-bg opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]" />
       <div className="relative mx-auto max-w-4xl rounded-2xl border border-primary/15 bg-card p-10 text-center">
-        <h2 className="font-display text-3xl font-semibold sm:text-4xl">Ship like a senior engineer.</h2>
+        <h2 className="font-display text-3xl font-semibold sm:text-4xl">
+          Ship like a senior engineer.
+        </h2>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
           Stop manually setting up CI, tests, and Docker. Let LaunchReady open the PR.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
             <GithubIcon className="h-4 w-4" /> Connect GitHub
           </Link>
-          <Link to="/demo" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted">
+          <Link
+            to="/demo"
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-muted"
+          >
             <Zap className="h-4 w-4" /> Try the demo
           </Link>
         </div>
         <div className="mt-6 flex flex-wrap justify-center gap-6 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> 12h saved per repo</span>
-          <span className="inline-flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> Read-only by default</span>
-          <span className="inline-flex items-center gap-1.5"><GitPullRequest className="h-3.5 w-3.5" /> PR-first workflow</span>
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" /> 12h saved per repo
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5" /> Read-only by default
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <GitPullRequest className="h-3.5 w-3.5" /> PR-first workflow
+          </span>
         </div>
       </div>
     </section>

@@ -5,7 +5,14 @@ import { getGitHubToken, clearAuthCookies } from "../github-token.server";
 import { getServiceRoleClient } from "../supabase.server";
 import { fetchGitHubRepos } from "../github.server";
 import { scanRepository } from "../scanner.server";
-import { deductCredits, refundCredits, checkScanLimit, incrementScanUsed, checkRepoLimit, checkPlanFeature } from "../credits.server";
+import {
+  deductCredits,
+  refundCredits,
+  checkScanLimit,
+  incrementScanUsed,
+  checkRepoLimit,
+  checkPlanFeature,
+} from "../credits.server";
 import { AI_FIX_IDS, generateAiTests, hasAiTestCache } from "../ai-tests.server";
 import { AI_FIX_COSTS, ARCH_SCAN_COST } from "../plans";
 
@@ -94,11 +101,7 @@ export const triggerScan = createServerFn({ method: "POST" })
       .single();
     if (repoErr || !repo) throw new Error("Repo not found in database.");
 
-    const result = await scanRepository(
-      githubToken,
-      repo.full_name,
-      repo.default_branch ?? "main",
-    );
+    const result = await scanRepository(githubToken, repo.full_name, repo.default_branch ?? "main");
 
     // Update detected framework on the repo row
     await db.from("repos").update({ framework: result.framework }).eq("id", data.repoId);
@@ -221,21 +224,27 @@ async function runFixJob(
 
     const prNumber = Math.floor(Math.random() * 900 + 100);
     const prUrl = `https://github.com/${repoFullName}/pull/${prNumber}`;
-    await db.from("fix_requests").update({
-      status: "completed",
-      pr_number: prNumber,
-      pr_url: prUrl,
-      ...(aiFilesJson ? { ai_files: aiFilesJson } : {}),
-      updated_at: new Date().toISOString(),
-    }).eq("id", jobId);
+    await db
+      .from("fix_requests")
+      .update({
+        status: "completed",
+        pr_number: prNumber,
+        pr_url: prUrl,
+        ...(aiFilesJson ? { ai_files: aiFilesJson } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
   } catch (err) {
     // Refund credits on system error — do not refund on user cancel (handled separately)
     await refundCredits(ownerLogin, creditCost, jobId).catch(() => {});
-    await db.from("fix_requests").update({
-      status: "failed",
-      error_message: err instanceof Error ? err.message : "Unknown error",
-      updated_at: new Date().toISOString(),
-    }).eq("id", jobId);
+    await db
+      .from("fix_requests")
+      .update({
+        status: "failed",
+        error_message: err instanceof Error ? err.message : "Unknown error",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
   }
 }
 
@@ -252,7 +261,15 @@ export const confirmFixRequest = createServerFn({ method: "POST" })
     const githubToken = getGitHubToken();
     if (!githubToken) throw new Error("GitHub token unavailable — please reconnect.");
 
-    type JobRow = { id: string; status: string; credits_cost: number; scan_id: string; fixes: string; repo_id: string; repos: { full_name: string } | null };
+    type JobRow = {
+      id: string;
+      status: string;
+      credits_cost: number;
+      scan_id: string;
+      fixes: string;
+      repo_id: string;
+      repos: { full_name: string } | null;
+    };
     const { data: jobRaw, error } = await db
       .from("fix_requests")
       .select("id, status, credits_cost, scan_id, fixes, repo_id, repos(full_name)")
@@ -266,16 +283,27 @@ export const confirmFixRequest = createServerFn({ method: "POST" })
     // Deduct credits before the job starts (throws if insufficient balance)
     await deductCredits(user.login, job.credits_cost, data.jobId);
 
-    await db.from("fix_requests").update({
-      status: "running",
-      owner_login: user.login,
-      updated_at: new Date().toISOString(),
-    }).eq("id", data.jobId);
+    await db
+      .from("fix_requests")
+      .update({
+        status: "running",
+        owner_login: user.login,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.jobId);
 
     const repoFullName = job.repos?.full_name ?? "";
     const fixIds = job.fixes.split(",").filter(Boolean);
     // Fire and forget — does not block the response, survives browser close
-    void runFixJob(data.jobId, repoFullName, user.login, job.credits_cost, fixIds, job.scan_id, githubToken);
+    void runFixJob(
+      data.jobId,
+      repoFullName,
+      user.login,
+      job.credits_cost,
+      fixIds,
+      job.scan_id,
+      githubToken,
+    );
 
     return { jobId: data.jobId };
   });
@@ -336,9 +364,12 @@ export const runArchScanFn = createServerFn({ method: "POST" })
     const { getArchScan, saveArchScan } = await import("../db.server");
     const existing = await getArchScan(data.repoId);
     if (existing) {
-      const ageMs = Date.now() - new Date(
-        (await db.from("arch_scans").select("created_at").eq("id", existing.id).single()).data?.created_at ?? 0
-      ).getTime();
+      const ageMs =
+        Date.now() -
+        new Date(
+          (await db.from("arch_scans").select("created_at").eq("id", existing.id).single()).data
+            ?.created_at ?? 0,
+        ).getTime();
       if (ageMs < 60 * 60 * 1000) return existing; // under 1 hour — free cache hit
     }
 
@@ -358,8 +389,12 @@ export const cancelFixRequest = createServerFn({ method: "POST" })
     if (!getStoredUser()) throw new Error("Not authenticated");
 
     const db = getServiceRoleClient();
-    await db.from("fix_requests").update({
-      status: "cancelled",
-      updated_at: new Date().toISOString(),
-    }).eq("id", data.jobId).eq("status", "pending");
+    await db
+      .from("fix_requests")
+      .update({
+        status: "cancelled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.jobId)
+      .eq("status", "pending");
   });

@@ -34,7 +34,9 @@ function getProvider(name: string): AIProvider {
       return (_gemini ??= new GeminiProvider(key));
     }
     default:
-      throw new Error(`Unknown AI provider: "${name}". Valid options: deepseek, claude, openai, gemini.`);
+      throw new Error(
+        `Unknown AI provider: "${name}". Valid options: deepseek, claude, openai, gemini.`,
+      );
   }
 }
 
@@ -50,7 +52,6 @@ function getProvider(name: string): AIProvider {
 //   api_test_generation      → DeepSeek
 //   readme_improvements      → DeepSeek
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function selectProviderName(_ctx: RouterContext): string {
   const configured = (process.env.AI_PROVIDER ?? "deepseek").toLowerCase();
 

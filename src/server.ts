@@ -75,6 +75,7 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
 
   // checkout.session.completed — plan activation (backup to /api/stripe/success)
   if (event.type === "checkout.session.completed") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session = event.data.object as any;
     const githubLogin = session.metadata?.github_login;
     const planId = session.metadata?.plan_id as keyof typeof PLANS | undefined;
@@ -82,9 +83,11 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
       const plan = PLANS[planId];
       const now = new Date();
       const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const subscriptionId = typeof session.subscription === "string"
-        ? session.subscription
-        : (session.subscription as any)?.id ?? null;
+      const subscriptionId =
+        typeof session.subscription === "string"
+          ? session.subscription
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ((session.subscription as any)?.id ?? null);
 
       await db.from("user_credits").upsert(
         {
@@ -118,6 +121,7 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
 
   // customer.subscription.deleted — downgrade to free
   if (event.type === "customer.subscription.deleted") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sub = event.data.object as any;
     const { data: userRow } = await db
       .from("user_credits")
@@ -127,26 +131,32 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
 
     if (userRow) {
       const freePlan = PLANS["free"];
-      await db.from("user_credits").update({
-        plan: "free",
-        monthly_scan_limit: freePlan.scansPerMonth,
-        balance: 0,
-        ai_credits_total: 0,
-        stripe_subscription_id: null,
-        updated_at: new Date().toISOString(),
-      }).eq("github_login", userRow.github_login);
+      await db
+        .from("user_credits")
+        .update({
+          plan: "free",
+          monthly_scan_limit: freePlan.scansPerMonth,
+          balance: 0,
+          ai_credits_total: 0,
+          stripe_subscription_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("github_login", userRow.github_login);
 
       try {
         const { sendCancellationEmail } = await import("./lib/email.server");
         if (sub.customer_email) {
           await sendCancellationEmail(sub.customer_email, userRow.github_login, "plan");
         }
-      } catch { /* non-critical */ }
+      } catch {
+        /* non-critical */
+      }
     }
   }
 
   // invoice.payment_failed — notify user
   if (event.type === "invoice.payment_failed") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const invoice = event.data.object as any;
     if (invoice.customer_email) {
       try {
@@ -159,7 +169,9 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
         if (userRow) {
           await sendPaymentFailedEmail(invoice.customer_email, userRow.github_login);
         }
-      } catch { /* non-critical */ }
+      } catch {
+        /* non-critical */
+      }
     }
   }
 

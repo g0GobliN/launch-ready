@@ -47,12 +47,12 @@ const FINDING_CONFIG: Record<
   string,
   { icon: React.ComponentType<{ className?: string }>; label: string; color: string }
 > = {
-  "circular-dep":      { icon: AlertCircle,  label: "Circular dependency",   color: "text-critical" },
-  "dead-file":         { icon: FileX,        label: "Dead file",              color: "text-muted-foreground" },
-  "unused-package":    { icon: PackageX,     label: "Unused package",         color: "text-muted-foreground" },
-  "oversized-file":    { icon: FileWarning,  label: "Oversized file",         color: "text-warning" },
-  "separation-issue":  { icon: Layers,       label: "Separation of concerns", color: "text-warning" },
-  "duplicate-logic":   { icon: Copy,         label: "Duplicate logic",        color: "text-accent" },
+  "circular-dep": { icon: AlertCircle, label: "Circular dependency", color: "text-critical" },
+  "dead-file": { icon: FileX, label: "Dead file", color: "text-muted-foreground" },
+  "unused-package": { icon: PackageX, label: "Unused package", color: "text-muted-foreground" },
+  "oversized-file": { icon: FileWarning, label: "Oversized file", color: "text-warning" },
+  "separation-issue": { icon: Layers, label: "Separation of concerns", color: "text-warning" },
+  "duplicate-logic": { icon: Copy, label: "Duplicate logic", color: "text-accent" },
 };
 
 const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -69,7 +69,10 @@ function ArchPage() {
   const canRunArch = currentPlan === "pro" || currentPlan === "agency";
 
   async function handleRun() {
-    if (!canRunArch) { setUpgradeModal(true); return; }
+    if (!canRunArch) {
+      setUpgradeModal(true);
+      return;
+    }
     setRunning(true);
     setError(null);
     try {
@@ -77,9 +80,13 @@ function ArchPage() {
       setArchScan(result);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Analysis failed.";
-      if (msg.startsWith("LIMIT:plan:")) { setUpgradeModal(true); }
-      else if (msg.includes("Insufficient AI credits")) { setError("Not enough AI credits. Check your plan."); }
-      else { setError(msg); }
+      if (msg.startsWith("LIMIT:plan:")) {
+        setUpgradeModal(true);
+      } else if (msg.includes("Insufficient AI credits")) {
+        setError("Not enough AI credits. Check your plan.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setRunning(false);
     }
@@ -93,13 +100,24 @@ function ArchPage() {
 
   return (
     <div className="min-h-screen">
-      <UpgradeModal open={upgradeModal} onClose={() => setUpgradeModal(false)} reason="arch" currentPlan={currentPlan} />
+      <UpgradeModal
+        open={upgradeModal}
+        onClose={() => setUpgradeModal(false)}
+        reason="arch"
+        currentPlan={currentPlan}
+      />
       <SiteHeader />
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/dashboard" className="hover:text-foreground">Dashboard</Link>
+          <Link to="/dashboard" className="hover:text-foreground">
+            Dashboard
+          </Link>
           <span>/</span>
-          <Link to="/repo/$repoId" params={{ repoId: repo.id }} className="hover:text-foreground font-mono">
+          <Link
+            to="/repo/$repoId"
+            params={{ repoId: repo.id }}
+            className="hover:text-foreground font-mono"
+          >
             {repo.full_name}
           </Link>
           <span>/</span>
@@ -165,7 +183,8 @@ function ArchPage() {
                   <div className="mt-4 text-center">
                     <div className="font-display text-base font-semibold">Architecture Score</div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {archScan.scannedFiles} file{archScan.scannedFiles !== 1 ? "s" : ""} analyzed · {archScan.createdAt}
+                      {archScan.scannedFiles} file{archScan.scannedFiles !== 1 ? "s" : ""} analyzed
+                      · {archScan.createdAt}
                     </div>
                   </div>
                 </div>
@@ -199,7 +218,9 @@ function ArchPage() {
             <div>
               {sortedFindings.length === 0 ? (
                 <div className="rounded-xl border border-success/30 bg-success/5 p-10 text-center">
-                  <div className="font-display text-lg font-semibold text-success">Clean architecture</div>
+                  <div className="font-display text-lg font-semibold text-success">
+                    Clean architecture
+                  </div>
                   <p className="mt-2 text-sm text-muted-foreground">
                     No structural issues detected in the {archScan.scannedFiles} files analyzed.
                   </p>
@@ -207,8 +228,8 @@ function ArchPage() {
               ) : (
                 <div className="space-y-3">
                   <div className="text-sm text-muted-foreground">
-                    {sortedFindings.length} finding{sortedFindings.length !== 1 ? "s" : ""} —{" "}
-                    sorted by severity
+                    {sortedFindings.length} finding{sortedFindings.length !== 1 ? "s" : ""} — sorted
+                    by severity
                   </div>
                   {sortedFindings.map((finding) => (
                     <FindingCard key={finding.id} finding={finding} />
@@ -249,7 +270,11 @@ function FindingCard({ finding }: { finding: ArchFinding }) {
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{finding.detail}</p>
         </div>
-        {open ? <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
+        {open ? (
+          <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+        )}
       </button>
 
       {open && (
@@ -263,7 +288,10 @@ function FindingCard({ finding }: { finding: ArchFinding }) {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {finding.files.map((f) => (
-                  <span key={f} className="rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-xs">
+                  <span
+                    key={f}
+                    className="rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-xs"
+                  >
                     {f}
                   </span>
                 ))}

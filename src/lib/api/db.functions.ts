@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRepo, getScan, getFixRequest, getRecentFixRequests, getRecentScans } from "../db.server";
+import {
+  getRepo,
+  getScan,
+  getFixRequest,
+  getRecentFixRequests,
+  getRecentScans,
+} from "../db.server";
 
 export const getRepoFn = createServerFn({ method: "GET" })
   .inputValidator(z.object({ repoId: z.string() }))

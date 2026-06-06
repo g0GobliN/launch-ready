@@ -38,12 +38,17 @@ export async function sendWelcomeEmail(to: string, name: string) {
       `Welcome, ${name}!`,
       `<p style="color:#9ca3af;line-height:1.6">Your GitHub account is connected. You're on the <strong style="color:#f0f0f0">Free plan</strong> — 1 repo, 3 scans per month.</p>
        <p style="color:#9ca3af;line-height:1.6">Run your first scan from the dashboard and get a production-readiness score in seconds.</p>
-       <a href="${process.env.APP_URL}/dashboard" style="display:inline-block;margin-top:16px;background:#22c55e;color:#0f1a0f;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">Go to dashboard →</a>`
+       <a href="${process.env.APP_URL}/dashboard" style="display:inline-block;margin-top:16px;background:#22c55e;color:#0f1a0f;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">Go to dashboard →</a>`,
     ),
   });
 }
 
-export async function sendPurchaseEmail(to: string, name: string, planName: string, priceYen: number) {
+export async function sendPurchaseEmail(
+  to: string,
+  name: string,
+  planName: string,
+  priceYen: number,
+) {
   const resend = getResend();
   if (!resend) return;
   await resend.emails.send({
@@ -61,7 +66,7 @@ export async function sendPurchaseEmail(to: string, name: string, planName: stri
            <span style="color:#9ca3af">Amount</span><span style="font-weight:600">¥${priceYen.toLocaleString()} / month</span>
          </div>
        </div>
-       <a href="${process.env.APP_URL}/dashboard" style="display:inline-block;background:#22c55e;color:#0f1a0f;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">Go to dashboard →</a>`
+       <a href="${process.env.APP_URL}/dashboard" style="display:inline-block;background:#22c55e;color:#0f1a0f;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">Go to dashboard →</a>`,
     ),
   });
 }
@@ -78,7 +83,7 @@ export async function sendCancellationEmail(to: string, name: string, planName: 
       `<p style="color:#9ca3af;line-height:1.6">Hi ${name}, your <strong style="color:#f0f0f0">${planName}</strong> subscription has been cancelled. You'll keep access until the end of your current billing period.</p>
        <p style="color:#9ca3af;line-height:1.6">After that, your account will move to the Free plan (1 repo, 3 scans/month).</p>
        <p style="color:#9ca3af;line-height:1.6">Changed your mind? You can resubscribe anytime.</p>
-       <a href="${process.env.APP_URL}/pricing" style="display:inline-block;margin-top:4px;background:#22c55e;color:#0f1a0f;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">View plans →</a>`
+       <a href="${process.env.APP_URL}/pricing" style="display:inline-block;margin-top:4px;background:#22c55e;color:#0f1a0f;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">View plans →</a>`,
     ),
   });
 }
@@ -93,7 +98,7 @@ export async function sendPaymentFailedEmail(to: string, name: string) {
     html: base(
       "Payment failed",
       `<p style="color:#9ca3af;line-height:1.6">Hi ${name}, we couldn't process your last payment. Please update your payment method to keep your plan active.</p>
-       <a href="${process.env.APP_URL}/settings" style="display:inline-block;margin-top:4px;background:#ef4444;color:#fff;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">Update payment method →</a>`
+       <a href="${process.env.APP_URL}/settings" style="display:inline-block;margin-top:4px;background:#ef4444;color:#fff;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">Update payment method →</a>`,
     ),
   });
 }

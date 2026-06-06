@@ -49,21 +49,123 @@ export interface Scan {
 }
 
 export const MOCK_REPOS: Repo[] = [
-  { id: "r1", name: "nextjs-saas-app", full_name: "demo/nextjs-saas-app", description: "Next.js SaaS App — auth, billing, dashboard", language: "TypeScript", stars: 42, updated: "2 hours ago", private: false, framework: "Next.js" },
-  { id: "r2", name: "react-vite-dashboard", full_name: "demo/react-vite-dashboard", description: "React Vite Dashboard — analytics & charts", language: "TypeScript", stars: 18, updated: "yesterday", private: true, framework: "React Vite" },
-  { id: "r3", name: "express-api-server", full_name: "demo/express-api-server", description: "Express API Server — REST endpoints + Postgres", language: "JavaScript", stars: 7, updated: "3 days ago", private: true, framework: "Express" },
+  {
+    id: "r1",
+    name: "nextjs-saas-app",
+    full_name: "demo/nextjs-saas-app",
+    description: "Next.js SaaS App — auth, billing, dashboard",
+    language: "TypeScript",
+    stars: 42,
+    updated: "2 hours ago",
+    private: false,
+    framework: "Next.js",
+  },
+  {
+    id: "r2",
+    name: "react-vite-dashboard",
+    full_name: "demo/react-vite-dashboard",
+    description: "React Vite Dashboard — analytics & charts",
+    language: "TypeScript",
+    stars: 18,
+    updated: "yesterday",
+    private: true,
+    framework: "React Vite",
+  },
+  {
+    id: "r3",
+    name: "express-api-server",
+    full_name: "demo/express-api-server",
+    description: "Express API Server — REST endpoints + Postgres",
+    language: "JavaScript",
+    stars: 7,
+    updated: "3 days ago",
+    private: true,
+    framework: "Express",
+  },
 ];
 
 const COMMON_ISSUES = (framework: Repo["framework"]): Issue[] => [
-  { id: "i-vitest", fixId: "vitest", category: "Testing", title: "No unit test framework configured", severity: "high", why: "Without tests, regressions slip into production. Vitest gives instant feedback.", timeSaved: "3h" },
-  { id: "i-playwright", fixId: "playwright", category: "Testing", title: "Missing end-to-end tests", severity: "medium", why: "E2E tests catch broken user flows before users do.", timeSaved: "4h" },
-  { id: "i-ci", fixId: "github-actions", category: "CI/CD", title: "No GitHub Actions workflow", severity: "critical", why: "Every push should run lint, typecheck, and tests automatically.", timeSaved: "2h" },
-  { id: "i-eslint", fixId: "eslint", category: "Code Quality", title: "ESLint not configured", severity: "high", why: "Catches bugs and enforces consistent style across contributors.", timeSaved: "1h" },
-  { id: "i-prettier", fixId: "prettier", category: "Code Quality", title: "Prettier not configured", severity: "low", why: "Removes formatting debates and makes diffs clean.", timeSaved: "30m" },
-  { id: "i-env", fixId: "env-example", category: "Security", title: "Missing .env.example", severity: "high", why: "Contributors can't run your app without knowing required env vars.", timeSaved: "1h" },
-  { id: "i-docker", fixId: "dockerfile", category: "Deployment", title: framework === "Express" ? "No Dockerfile for backend" : "No Dockerfile", severity: "medium", why: "Reproducible builds for any deployment target.", timeSaved: "2h" },
-  { id: "i-readme", fixId: "readme", category: "Documentation", title: "README missing setup section", severity: "medium", why: "Onboarding new devs (or your future self) takes hours without it.", timeSaved: "1h" },
-  { id: "i-monitor", fixId: "monitoring", category: "Monitoring", title: "No error monitoring (Sentry)", severity: "high", why: "You won't know production crashes happened until users complain.", timeSaved: "2h" },
+  {
+    id: "i-vitest",
+    fixId: "vitest",
+    category: "Testing",
+    title: "No unit test framework configured",
+    severity: "high",
+    why: "Without tests, regressions slip into production. Vitest gives instant feedback.",
+    timeSaved: "3h",
+  },
+  {
+    id: "i-playwright",
+    fixId: "playwright",
+    category: "Testing",
+    title: "Missing end-to-end tests",
+    severity: "medium",
+    why: "E2E tests catch broken user flows before users do.",
+    timeSaved: "4h",
+  },
+  {
+    id: "i-ci",
+    fixId: "github-actions",
+    category: "CI/CD",
+    title: "No GitHub Actions workflow",
+    severity: "critical",
+    why: "Every push should run lint, typecheck, and tests automatically.",
+    timeSaved: "2h",
+  },
+  {
+    id: "i-eslint",
+    fixId: "eslint",
+    category: "Code Quality",
+    title: "ESLint not configured",
+    severity: "high",
+    why: "Catches bugs and enforces consistent style across contributors.",
+    timeSaved: "1h",
+  },
+  {
+    id: "i-prettier",
+    fixId: "prettier",
+    category: "Code Quality",
+    title: "Prettier not configured",
+    severity: "low",
+    why: "Removes formatting debates and makes diffs clean.",
+    timeSaved: "30m",
+  },
+  {
+    id: "i-env",
+    fixId: "env-example",
+    category: "Security",
+    title: "Missing .env.example",
+    severity: "high",
+    why: "Contributors can't run your app without knowing required env vars.",
+    timeSaved: "1h",
+  },
+  {
+    id: "i-docker",
+    fixId: "dockerfile",
+    category: "Deployment",
+    title: framework === "Express" ? "No Dockerfile for backend" : "No Dockerfile",
+    severity: "medium",
+    why: "Reproducible builds for any deployment target.",
+    timeSaved: "2h",
+  },
+  {
+    id: "i-readme",
+    fixId: "readme",
+    category: "Documentation",
+    title: "README missing setup section",
+    severity: "medium",
+    why: "Onboarding new devs (or your future self) takes hours without it.",
+    timeSaved: "1h",
+  },
+  {
+    id: "i-monitor",
+    fixId: "monitoring",
+    category: "Monitoring",
+    title: "No error monitoring (Sentry)",
+    severity: "high",
+    why: "You won't know production crashes happened until users complain.",
+    timeSaved: "2h",
+  },
 ];
 
 export const MOCK_SCANS: Record<string, Scan> = Object.fromEntries(
@@ -73,7 +175,7 @@ export const MOCK_SCANS: Record<string, Scan> = Object.fromEntries(
     const weights: Record<Severity, number> = { critical: 12, high: 7, medium: 4, low: 2 };
     const score = Math.max(20, 100 - issues.reduce((s, i) => s + weights[i.severity], 0));
     return [r.id, { id: `s-${r.id}`, repoId: r.id, score, createdAt: "just now", issues }];
-  })
+  }),
 );
 
 export const RECENT_SCANS = [
@@ -82,7 +184,12 @@ export const RECENT_SCANS = [
   { repo: "demo/express-api-server", score: 55, when: "3 days ago" },
 ];
 
-export type DiffLine = { type: "add" | "del" | "ctx" | "hunk"; text: string; oldNo?: number; newNo?: number };
+export type DiffLine = {
+  type: "add" | "del" | "ctx" | "hunk";
+  text: string;
+  oldNo?: number;
+  newNo?: number;
+};
 export type FileDiff = { path: string; status: "added" | "modified"; lines: DiffLine[] };
 
 export interface FixPreview {
@@ -91,11 +198,16 @@ export interface FixPreview {
   deps: string[];
   diffs: FileDiff[];
   creditCost?: number; // 0 for template fixes; AI fixes will set a positive value
-  isAi?: boolean;      // true = content generated by Claude at job time, diffs are illustrative
+  isAi?: boolean; // true = content generated by Claude at job time, diffs are illustrative
 }
 
 const add = (text: string, newNo: number): DiffLine => ({ type: "add", text, newNo });
-const ctx = (text: string, oldNo: number, newNo: number): DiffLine => ({ type: "ctx", text, oldNo, newNo });
+const ctx = (text: string, oldNo: number, newNo: number): DiffLine => ({
+  type: "ctx",
+  text,
+  oldNo,
+  newNo,
+});
 const hunk = (text: string): DiffLine => ({ type: "hunk", text });
 
 export const FIX_DETAILS: Record<string, FixPreview & { label: string }> = {
@@ -242,10 +354,22 @@ export const FIX_DETAILS: Record<string, FixPreview & { label: string }> = {
           add(`      - name: Check scripts`, 44),
           add(`        id: scripts`, 45),
           add(`        run: |`, 46),
-          add(`          has() { node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)"; }`, 47),
-          add(`          has lint  && echo "lint=true"  >> $GITHUB_OUTPUT || echo "lint=false"  >> $GITHUB_OUTPUT`, 48),
-          add(`          has test  && echo "test=true"  >> $GITHUB_OUTPUT || echo "test=false"  >> $GITHUB_OUTPUT`, 49),
-          add(`          has build && echo "build=true" >> $GITHUB_OUTPUT || echo "build=false" >> $GITHUB_OUTPUT`, 50),
+          add(
+            `          has() { node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)"; }`,
+            47,
+          ),
+          add(
+            `          has lint  && echo "lint=true"  >> $GITHUB_OUTPUT || echo "lint=false"  >> $GITHUB_OUTPUT`,
+            48,
+          ),
+          add(
+            `          has test  && echo "test=true"  >> $GITHUB_OUTPUT || echo "test=false"  >> $GITHUB_OUTPUT`,
+            49,
+          ),
+          add(
+            `          has build && echo "build=true" >> $GITHUB_OUTPUT || echo "build=false" >> $GITHUB_OUTPUT`,
+            50,
+          ),
           add(``, 51),
           add(`      - name: Lint`, 52),
           add(`        if: steps.scripts.outputs.lint == 'true'`, 53),
@@ -616,7 +740,10 @@ export const FIX_DETAILS: Record<string, FixPreview & { label: string }> = {
           add(`import type { Request, Response, NextFunction } from "express";`, 1),
           add(`import { logger } from "../lib/logger";`, 2),
           add(``, 3),
-          add(`export function requestLogger(req: Request, res: Response, next: NextFunction) {`, 4),
+          add(
+            `export function requestLogger(req: Request, res: Response, next: NextFunction) {`,
+            4,
+          ),
           add(`  const start = Date.now();`, 5),
           add(`  res.on("finish", () => {`, 6),
           add(`    logger.info("request", {`, 7),

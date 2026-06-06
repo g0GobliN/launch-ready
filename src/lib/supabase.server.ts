@@ -71,5 +71,8 @@ export function getServiceRoleClient() {
   const url = import.meta.env.VITE_SUPABASE_URL as string;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY env var is required");
-  return createClient<Database>(url, key, { auth: { persistSession: false }, realtime: realtimeOpts });
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false },
+    realtime: realtimeOpts,
+  });
 }

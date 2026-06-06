@@ -28,7 +28,13 @@ export const PLANS: Record<PlanId, Plan> = {
     repos: 3,
     scansPerMonth: 20,
     aiCreditsPerMonth: 10,
-    features: ["3 repositories", "20 scans / month", "10 AI credits / month", "Unlimited template fixes", "Job history"],
+    features: [
+      "3 repositories",
+      "20 scans / month",
+      "10 AI credits / month",
+      "Unlimited template fixes",
+      "Job history",
+    ],
     highlighted: true,
   },
   pro: {
@@ -38,7 +44,14 @@ export const PLANS: Record<PlanId, Plan> = {
     repos: 10,
     scansPerMonth: 100,
     aiCreditsPerMonth: 50,
-    features: ["10 repositories", "100 scans / month", "50 AI credits / month", "Architecture analysis", "Advanced reports", "Priority queue"],
+    features: [
+      "10 repositories",
+      "100 scans / month",
+      "50 AI credits / month",
+      "Architecture analysis",
+      "Advanced reports",
+      "Priority queue",
+    ],
   },
   agency: {
     id: "agency",
@@ -47,7 +60,14 @@ export const PLANS: Record<PlanId, Plan> = {
     repos: 50,
     scansPerMonth: 500,
     aiCreditsPerMonth: 250,
-    features: ["50 repositories", "500 scans / month", "250 AI credits / month", "Team dashboard", "Priority processing", "Reports"],
+    features: [
+      "50 repositories",
+      "500 scans / month",
+      "250 AI credits / month",
+      "Team dashboard",
+      "Priority processing",
+      "Reports",
+    ],
   },
 };
 

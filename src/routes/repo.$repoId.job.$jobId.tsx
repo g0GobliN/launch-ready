@@ -118,7 +118,9 @@ function JobPage() {
             />
           )}
           {job.status === "running" && <RunningView job={job} />}
-          {job.status === "completed" && <CompletedView job={job} fixLabels={fixLabels} repoId={repo.id} />}
+          {job.status === "completed" && (
+            <CompletedView job={job} fixLabels={fixLabels} repoId={repo.id} />
+          )}
           {job.status === "failed" && <FailedView job={job} repoId={repo.id} />}
           {job.status === "cancelled" && <CancelledView repoId={repo.id} />}
         </div>
@@ -171,8 +173,12 @@ function PendingView({
         </div>
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
           <Coins className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">{job.credits_cost} credit{job.credits_cost !== 1 ? "s" : ""}</span>
-          <span className="text-sm text-muted-foreground">· {job.credits_cost} fix{job.credits_cost !== 1 ? "es" : ""} selected</span>
+          <span className="text-sm font-medium">
+            {job.credits_cost} credit{job.credits_cost !== 1 ? "s" : ""}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            · {job.credits_cost} fix{job.credits_cost !== 1 ? "es" : ""} selected
+          </span>
         </div>
       </div>
 
@@ -235,14 +241,14 @@ function RunningView({ job }: { job: FixRequestRow }) {
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
         </div>
         <h2 className="mt-4 font-display text-xl font-semibold">Generating pull request…</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          This usually takes a few seconds.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">This usually takes a few seconds.</p>
         <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary">
           You can safely close this tab — the job will continue in the background.
         </div>
         <ProgressBar />
-        <p className="mt-4 text-xs text-muted-foreground">Branch: <span className="font-mono">{job.branch_name}</span></p>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Branch: <span className="font-mono">{job.branch_name}</span>
+        </p>
       </div>
     </>
   );
@@ -258,13 +264,21 @@ function ProgressBar() {
 
 // ─── Completed ────────────────────────────────────────────────────────────────
 
-interface AiFile { fixId: string; path: string; content: string }
+interface AiFile {
+  fixId: string;
+  path: string;
+  content: string;
+}
 
 function AiFilesPanel({ json }: { json: string | null }) {
   const [open, setOpen] = useState<string | null>(null);
   if (!json) return null;
   let files: AiFile[] = [];
-  try { files = JSON.parse(json) as AiFile[]; } catch { return null; }
+  try {
+    files = JSON.parse(json) as AiFile[];
+  } catch {
+    return null;
+  }
   if (files.length === 0) return null;
 
   return (
@@ -272,7 +286,9 @@ function AiFilesPanel({ json }: { json: string | null }) {
       <div className="mb-3 flex items-center gap-2">
         <BrainCircuit className="h-4 w-4 text-accent" />
         <h3 className="font-display text-sm font-semibold">AI-generated test files</h3>
-        <span className="ml-auto text-xs text-muted-foreground">{files.length} file{files.length !== 1 ? "s" : ""}</span>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {files.length} file{files.length !== 1 ? "s" : ""}
+        </span>
       </div>
       <div className="space-y-2">
         {files.map((f) => (
@@ -282,7 +298,11 @@ function AiFilesPanel({ json }: { json: string | null }) {
               className="flex w-full items-center justify-between px-3 py-2 text-xs cursor-pointer"
             >
               <span className="font-mono text-muted-foreground">{f.path}</span>
-              {open === f.path ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {open === f.path ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
             </button>
             {open === f.path && (
               <pre className="max-h-64 overflow-auto border-t border-border px-3 py-2 font-mono text-[11px] leading-relaxed text-foreground">
@@ -335,7 +355,9 @@ function CompletedView({
           <div className="mt-1 font-mono text-sm">{job.branch_name}</div>
           {job.pr_url && (
             <>
-              <div className="mt-4 text-xs uppercase tracking-widest text-muted-foreground">PR URL</div>
+              <div className="mt-4 text-xs uppercase tracking-widest text-muted-foreground">
+                PR URL
+              </div>
               <a
                 href={job.pr_url}
                 target="_blank"
@@ -372,7 +394,9 @@ function CompletedView({
         <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
           <li>1. Review the PR diff on GitHub.</li>
           <li>2. Run the new CI workflow to confirm it passes.</li>
-          <li>3. Merge to <span className="font-mono">main</span> — your repo is production-ready.</li>
+          <li>
+            3. Merge to <span className="font-mono">main</span> — your repo is production-ready.
+          </li>
         </ol>
         <div className="mt-5 flex gap-2">
           <Link
@@ -469,36 +493,30 @@ function CancelledView({ repoId }: { repoId: string }) {
 
 // ─── Shared components ────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; className: string }
-> = {
-  pending:   { label: "Pending confirmation",  className: "bg-warning/10 text-warning border-warning/20" },
-  running:   { label: "Running",               className: "bg-primary/10 text-primary border-primary/20" },
-  completed: { label: "Completed",             className: "bg-success/10 text-success border-success/20" },
-  failed:    { label: "Failed",                className: "bg-critical/10 text-critical border-critical/20" },
-  cancelled: { label: "Cancelled",             className: "bg-muted/50 text-muted-foreground border-border" },
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  pending: {
+    label: "Pending confirmation",
+    className: "bg-warning/10 text-warning border-warning/20",
+  },
+  running: { label: "Running", className: "bg-primary/10 text-primary border-primary/20" },
+  completed: { label: "Completed", className: "bg-success/10 text-success border-success/20" },
+  failed: { label: "Failed", className: "bg-critical/10 text-critical border-critical/20" },
+  cancelled: { label: "Cancelled", className: "bg-muted/50 text-muted-foreground border-border" },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.cancelled;
   return (
-    <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${cfg.className}`}>
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${cfg.className}`}
+    >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {cfg.label}
     </div>
   );
 }
 
-function StatPill({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-}) {
+function StatPill({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3">
       {icon}

@@ -125,35 +125,33 @@ const INITIAL_ISSUES: Issue[] = [
 
 /* ─── severity config ─── */
 
-const SEVERITY_META: Record<
-  Severity,
-  { label: string; color: string; bg: string; ring: string }
-> = {
-  critical: {
-    label: "Critical",
-    color: "text-critical",
-    bg: "bg-critical/10",
-    ring: "ring-critical/30",
-  },
-  high: {
-    label: "High",
-    color: "text-warning",
-    bg: "bg-warning/10",
-    ring: "ring-warning/30",
-  },
-  medium: {
-    label: "Medium",
-    color: "text-accent",
-    bg: "bg-accent/10",
-    ring: "ring-accent/30",
-  },
-  low: {
-    label: "Low",
-    color: "text-muted-foreground",
-    bg: "bg-muted/10",
-    ring: "ring-border",
-  },
-};
+const SEVERITY_META: Record<Severity, { label: string; color: string; bg: string; ring: string }> =
+  {
+    critical: {
+      label: "Critical",
+      color: "text-critical",
+      bg: "bg-critical/10",
+      ring: "ring-critical/30",
+    },
+    high: {
+      label: "High",
+      color: "text-warning",
+      bg: "bg-warning/10",
+      ring: "ring-warning/30",
+    },
+    medium: {
+      label: "Medium",
+      color: "text-accent",
+      bg: "bg-accent/10",
+      ring: "ring-accent/30",
+    },
+    low: {
+      label: "Low",
+      color: "text-muted-foreground",
+      bg: "bg-muted/10",
+      ring: "ring-border",
+    },
+  };
 
 function scoreFromIssues(issues: Issue[]) {
   const weights: Record<Severity, number> = {
@@ -162,10 +160,7 @@ function scoreFromIssues(issues: Issue[]) {
     medium: 6,
     low: 3,
   };
-  const maxPossible = INITIAL_ISSUES.reduce(
-    (acc, i) => acc + weights[i.severity],
-    0
-  );
+  const maxPossible = INITIAL_ISSUES.reduce((acc, i) => acc + weights[i.severity], 0);
   const remaining = issues.reduce((acc, i) => acc + weights[i.severity], 0);
   return Math.round(((maxPossible - remaining) / maxPossible) * 55 + 30);
 }
@@ -188,7 +183,11 @@ function ScoreRing({ score }: { score: number }) {
       <svg width="136" height="136" className="-rotate-90">
         <circle cx="68" cy="68" r={radius} fill="none" strokeWidth="10" className="stroke-border" />
         <circle
-          cx="68" cy="68" r={radius} fill="none" strokeWidth="10"
+          cx="68"
+          cy="68"
+          r={radius}
+          fill="none"
+          strokeWidth="10"
           strokeDasharray={`${progress} ${circ}`}
           strokeLinecap="round"
           className={`transition-all duration-700 ${color}`}
@@ -196,7 +195,9 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className="absolute flex flex-col items-center">
         <span className={`font-display text-4xl font-bold ${color}`}>{score}</span>
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">readiness</span>
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          readiness
+        </span>
       </div>
     </div>
   );
@@ -209,17 +210,17 @@ type Phase = "idle" | "scanning" | "done" | "generating" | "pr_created";
 function ScannerAnimation({ onDone }: { onDone: () => void }) {
   const [line, setLine] = useState(0);
   const lines: { text: string; type: "default" | "error" | "success" }[] = [
-    { text: "→ Cloning repo metadata…",                    type: "default" },
-    { text: "→ Reading file tree (312 files)…",            type: "default" },
-    { text: "→ Detecting framework: Next.js 14",           type: "default" },
-    { text: "→ Checking .github/workflows/…  ✗ not found",type: "error"   },
-    { text: "→ Checking test runner config… ✗ not found",  type: "error"   },
-    { text: "→ Checking .env.example…       ✗ not found",  type: "error"   },
-    { text: "→ Checking Dockerfile…         ✗ not found",  type: "error"   },
-    { text: "→ Checking eslint.config…      ✗ not found",  type: "error"   },
-    { text: "→ Checking sentry config…      ✗ not found",  type: "error"   },
-    { text: "→ Calculating readiness score…",              type: "default" },
-    { text: "✓ Scan complete — score: 38/100",             type: "success" },
+    { text: "→ Cloning repo metadata…", type: "default" },
+    { text: "→ Reading file tree (312 files)…", type: "default" },
+    { text: "→ Detecting framework: Next.js 14", type: "default" },
+    { text: "→ Checking .github/workflows/…  ✗ not found", type: "error" },
+    { text: "→ Checking test runner config… ✗ not found", type: "error" },
+    { text: "→ Checking .env.example…       ✗ not found", type: "error" },
+    { text: "→ Checking Dockerfile…         ✗ not found", type: "error" },
+    { text: "→ Checking eslint.config…      ✗ not found", type: "error" },
+    { text: "→ Checking sentry config…      ✗ not found", type: "error" },
+    { text: "→ Calculating readiness score…", type: "default" },
+    { text: "✓ Scan complete — score: 38/100", type: "success" },
   ];
 
   useEffect(() => {
@@ -231,7 +232,13 @@ function ScannerAnimation({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(t);
   }, [line]);
 
-  return <TerminalBox lines={lines.slice(0, line)} showCursor={line < lines.length} title={`scanning ${DEMO_REPO.owner}/${DEMO_REPO.name}`} />;
+  return (
+    <TerminalBox
+      lines={lines.slice(0, line)}
+      showCursor={line < lines.length}
+      title={`scanning ${DEMO_REPO.owner}/${DEMO_REPO.name}`}
+    />
+  );
 }
 
 function TerminalBox({
@@ -266,9 +273,7 @@ function TerminalBox({
             {l.text}
           </div>
         ))}
-        {showCursor && (
-          <span className="inline-block h-3 w-1.5 animate-pulse bg-primary/70" />
-        )}
+        {showCursor && <span className="inline-block h-3 w-1.5 animate-pulse bg-primary/70" />}
       </div>
     </div>
   );
@@ -316,7 +321,9 @@ function PRModal({ onClose, timeSaved }: { onClose: () => void; timeSaved: numbe
               <span className="text-critical">38</span>
               <ArrowRight className="h-3 w-3 text-muted-foreground" />
               <span className="text-success">82</span>
-              <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] text-success">+44 pts</span>
+              <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] text-success">
+                +44 pts
+              </span>
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -341,7 +348,9 @@ function PRModal({ onClose, timeSaved }: { onClose: () => void; timeSaved: numbe
 
         {thanked ? (
           <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4 text-center">
-            <p className="font-display font-semibold text-foreground">Thanks for trying LaunchReady!</p>
+            <p className="font-display font-semibold text-foreground">
+              Thanks for trying LaunchReady!
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
               This was a demo PR — connect your real repo to get one just like it, for free.
             </p>
@@ -397,14 +406,12 @@ function DemoPage() {
     setPhase("done");
     setTimeout(
       () => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      100
+      100,
     );
   }
 
   function toggleIssue(id: string) {
-    setIssues((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i))
-    );
+    setIssues((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
   }
 
   function generatePR() {
@@ -439,20 +446,23 @@ function DemoPage() {
             Interactive demo — no GitHub account needed
           </div>
           <h1 className="font-display text-4xl font-bold sm:text-5xl">
-            See LaunchReady in{" "}
-            <span className="text-gradient">action</span>
+            See LaunchReady in <span className="text-gradient">action</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Watch us scan a real-world AI-built SaaS repo, surface every missing piece, and generate a production-ready pull request — all in seconds.
+            Watch us scan a real-world AI-built SaaS repo, surface every missing piece, and generate
+            a production-ready pull request — all in seconds.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm">
             {[
               { n: "2,800+", label: "repos scanned" },
-              { n: "~4.8h",  label: "saved per scan" },
-              { n: "38→82",  label: "avg score jump" },
+              { n: "~4.8h", label: "saved per scan" },
+              { n: "38→82", label: "avg score jump" },
             ].map((s) => (
-              <div key={s.label} className="rounded-lg border border-border bg-card px-4 py-2 text-center">
+              <div
+                key={s.label}
+                className="rounded-lg border border-border bg-card px-4 py-2 text-center"
+              >
                 <div className="font-display font-semibold text-foreground">{s.n}</div>
                 <div className="text-[11px] text-muted-foreground">{s.label}</div>
               </div>
@@ -496,7 +506,10 @@ function DemoPage() {
         </div>
 
         {/* Step 2 — scanner output */}
-        {(phase === "scanning" || phase === "done" || phase === "generating" || phase === "pr_created") && (
+        {(phase === "scanning" ||
+          phase === "done" ||
+          phase === "generating" ||
+          phase === "pr_created") && (
           <div>
             <StepBadge n={2} label="Scanner output" />
             <div className="mt-4">
@@ -507,8 +520,8 @@ function DemoPage() {
                   title="scan complete"
                   lines={[
                     { text: "→ Detected: Next.js 14 · Supabase · TypeScript", type: "default" },
-                    { text: "→ 6 production gaps found",                       type: "error"   },
-                    { text: "✓ Score: 38/100 — all gaps are auto-fixable",      type: "success" },
+                    { text: "→ 6 production gaps found", type: "error" },
+                    { text: "✓ Score: 38/100 — all gaps are auto-fixable", type: "success" },
                   ]}
                 />
               )}
@@ -579,7 +592,10 @@ function DemoPage() {
                 <div className="flex flex-wrap gap-6 text-sm">
                   <span>
                     <span className="font-semibold text-primary">{checkedCount}</span>
-                    <span className="text-muted-foreground"> fix{checkedCount !== 1 ? "es" : ""} selected</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      fix{checkedCount !== 1 ? "es" : ""} selected
+                    </span>
                   </span>
                   <span>
                     <span className="font-semibold text-success">~{timeSaved.toFixed(1)}h</span>
@@ -589,7 +605,9 @@ function DemoPage() {
                     <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="font-semibold">{score}</span>
                     <span className="text-muted-foreground">→</span>
-                    <span className="font-semibold text-success">{Math.min(score + checkedCount * 9, 95)}</span>
+                    <span className="font-semibold text-success">
+                      {Math.min(score + checkedCount * 9, 95)}
+                    </span>
                     <span className="text-muted-foreground">score</span>
                   </span>
                 </div>
@@ -638,26 +656,56 @@ function DemoPage() {
             <p className="text-xs uppercase tracking-widest text-primary mb-6">What you'll find</p>
             <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { icon: <Workflow className="h-4 w-4" />, label: "CI/CD",        text: "Missing GitHub Actions pipelines" },
-                { icon: <TestTube2 className="h-4 w-4" />, label: "Testing",     text: "No test runner or config" },
-                { icon: <Shield className="h-4 w-4" />,    label: "Security",    text: "Exposed secrets, no .env.example" },
-                { icon: <Boxes className="h-4 w-4" />,     label: "Deployment",  text: "No Dockerfile or deploy config" },
-                { icon: <FileCode2 className="h-4 w-4" />, label: "Code quality", text: "Missing lint and format setup" },
-                { icon: <Activity className="h-4 w-4" />,  label: "Monitoring",  text: "Zero error tracking" },
+                {
+                  icon: <Workflow className="h-4 w-4" />,
+                  label: "CI/CD",
+                  text: "Missing GitHub Actions pipelines",
+                },
+                {
+                  icon: <TestTube2 className="h-4 w-4" />,
+                  label: "Testing",
+                  text: "No test runner or config",
+                },
+                {
+                  icon: <Shield className="h-4 w-4" />,
+                  label: "Security",
+                  text: "Exposed secrets, no .env.example",
+                },
+                {
+                  icon: <Boxes className="h-4 w-4" />,
+                  label: "Deployment",
+                  text: "No Dockerfile or deploy config",
+                },
+                {
+                  icon: <FileCode2 className="h-4 w-4" />,
+                  label: "Code quality",
+                  text: "Missing lint and format setup",
+                },
+                {
+                  icon: <Activity className="h-4 w-4" />,
+                  label: "Monitoring",
+                  text: "Zero error tracking",
+                },
               ].map((item) => (
-                <div key={item.label} className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3">
+                <div
+                  key={item.label}
+                  className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3"
+                >
                   <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
                     {item.icon}
                   </div>
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {item.label}
+                    </div>
                     <div className="mt-0.5 text-sm">{item.text}</div>
                   </div>
                 </div>
               ))}
             </div>
             <p className="mt-5 text-center text-sm text-muted-foreground">
-              Hit <span className="text-foreground font-medium">Run Scan</span> above to see every gap — and get a PR that fixes all of it.
+              Hit <span className="text-foreground font-medium">Run Scan</span> above to see every
+              gap — and get a PR that fixes all of it.
             </p>
           </div>
         )}

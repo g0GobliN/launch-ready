@@ -78,7 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Turn your AI-built app into a production-ready project." },
       { name: "author", content: "LaunchReady" },
       { property: "og:title", content: "LaunchReady" },
-      { property: "og:description", content: "Turn your AI-built app into a production-ready project." },
+      {
+        property: "og:description",
+        content: "Turn your AI-built app into a production-ready project.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

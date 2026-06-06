@@ -59,10 +59,7 @@ async function fetchFileTree(
   fullName: string,
   defaultBranch: string,
 ): Promise<string[]> {
-  const res = await ghFetch(
-    token,
-    `/repos/${fullName}/git/trees/${defaultBranch}?recursive=1`,
-  );
+  const res = await ghFetch(token, `/repos/${fullName}/git/trees/${defaultBranch}?recursive=1`);
   if (!res.ok) return [];
   const data = (await res.json()) as {
     tree: Array<{ path: string; type: string }>;
@@ -129,8 +126,7 @@ function checkReadme(readme: string | null, issues: IssueInput[]) {
 
 function checkTestScript(scripts: Record<string, string>, issues: IssueInput[]) {
   const test = scripts["test"] ?? "";
-  const isMissing =
-    !test || test.startsWith("echo") || test.includes("no test specified");
+  const isMissing = !test || test.startsWith("echo") || test.includes("no test specified");
   if (isMissing) {
     issues.push({
       category: "Testing",
@@ -158,11 +154,7 @@ function checkLintScript(scripts: Record<string, string>, issues: IssueInput[]) 
 
 // ─── Next.js checks ───────────────────────────────────────────────────────────
 
-function checkNextJs(
-  deps: Record<string, string>,
-  files: string[],
-  issues: IssueInput[],
-) {
+function checkNextJs(deps: Record<string, string>, files: string[], issues: IssueInput[]) {
   if (!deps["vitest"]) {
     issues.push({
       category: "Testing",
@@ -203,11 +195,7 @@ function checkNextJs(
 
 // ─── Vite / React checks ──────────────────────────────────────────────────────
 
-function checkVite(
-  deps: Record<string, string>,
-  files: string[],
-  issues: IssueInput[],
-) {
+function checkVite(deps: Record<string, string>, files: string[], issues: IssueInput[]) {
   if (!deps["vitest"]) {
     issues.push({
       category: "Testing",
@@ -244,8 +232,7 @@ function checkVite(
     });
   }
   const hasPrettier =
-    deps["prettier"] ||
-    files.some((f) => /^\.prettierrc(\.(js|ts|json|yaml|yml))?$/.test(f));
+    deps["prettier"] || files.some((f) => /^\.prettierrc(\.(js|ts|json|yaml|yml))?$/.test(f));
   if (!hasPrettier) {
     issues.push({
       category: "Code Quality",

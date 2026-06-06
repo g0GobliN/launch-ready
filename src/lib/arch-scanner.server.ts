@@ -43,7 +43,11 @@ async function ghFetch(token: string, path: string) {
   });
 }
 
-interface TreeNode { path: string; type: string; size?: number }
+interface TreeNode {
+  path: string;
+  type: string;
+  size?: number;
+}
 
 async function fetchTree(token: string, fullName: string, branch: string): Promise<TreeNode[]> {
   const res = await ghFetch(token, `/repos/${fullName}/git/trees/${branch}?recursive=1`);
@@ -52,7 +56,11 @@ async function fetchTree(token: string, fullName: string, branch: string): Promi
   return data.tree.filter((n) => n.type === "blob");
 }
 
-async function fetchFileContent(token: string, fullName: string, filePath: string): Promise<string | null> {
+async function fetchFileContent(
+  token: string,
+  fullName: string,
+  filePath: string,
+): Promise<string | null> {
   const res = await ghFetch(token, `/repos/${fullName}/contents/${filePath}`);
   if (!res.ok) return null;
   const data = (await res.json()) as { content?: string; encoding?: string };
@@ -102,10 +110,7 @@ function resolveRelative(fromFile: string, imp: string, allPaths: string[]): str
 
 // ─── Checks ───────────────────────────────────────────────────────────────────
 
-function buildGraph(
-  files: Record<string, string>,
-  allPaths: string[],
-): Map<string, Set<string>> {
+function buildGraph(files: Record<string, string>, allPaths: string[]): Map<string, Set<string>> {
   const graph = new Map<string, Set<string>>();
   for (const [filePath, content] of Object.entries(files)) {
     const edges = new Set<string>();
@@ -120,7 +125,9 @@ function buildGraph(
 }
 
 function detectCycles(graph: Map<string, Set<string>>): string[][] {
-  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const WHITE = 0,
+    GRAY = 1,
+    BLACK = 2;
   const color = new Map<string, number>();
   for (const n of graph.keys()) color.set(n, WHITE);
   const cycles: string[][] = [];
@@ -166,12 +173,20 @@ function findDeadFiles(graph: Map<string, Set<string>>, entryPoints: Set<string>
 
 function findUnusedPackages(pkgJson: string, allFiles: Record<string, string>): string[] {
   let pkg: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> } = {};
-  try { pkg = JSON.parse(pkgJson); } catch { return []; }
+  try {
+    pkg = JSON.parse(pkgJson);
+  } catch {
+    return [];
+  }
 
   const declared = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
-  const allImports = Object.values(allFiles).flatMap(parseImports).filter((i) => !i.startsWith("."));
+  const allImports = Object.values(allFiles)
+    .flatMap(parseImports)
+    .filter((i) => !i.startsWith("."));
   const usedSet = new Set(
-    allImports.map((i) => (i.startsWith("@") ? i.split("/").slice(0, 2).join("/") : i.split("/")[0])),
+    allImports.map((i) =>
+      i.startsWith("@") ? i.split("/").slice(0, 2).join("/") : i.split("/")[0],
+    ),
   );
 
   // Ignore packages that are unlikely to appear as explicit imports
@@ -180,7 +195,9 @@ function findUnusedPackages(pkgJson: string, allFiles: Record<string, string>): 
 }
 
 function findOversizedFiles(tree: TreeNode[]): string[] {
-  return tree.filter((n) => isSourceFile(n.path) && (n.size ?? 0) > OVERSIZED_BYTES).map((n) => n.path);
+  return tree
+    .filter((n) => isSourceFile(n.path) && (n.size ?? 0) > OVERSIZED_BYTES)
+    .map((n) => n.path);
 }
 
 function checkSeparation(files: Record<string, string>): string[] {
@@ -188,10 +205,14 @@ function checkSeparation(files: Record<string, string>): string[] {
   const DB_IMPORTS = /supabase|prisma|mongoose|sequelize|typeorm|drizzle/;
 
   for (const [path, content] of Object.entries(files)) {
-    const isClientRoute = (path.includes("/routes/") || path.includes("/pages/")) &&
-      !path.endsWith(".server.ts") && !path.endsWith(".server.tsx");
-    const isComponent = path.includes("/components/") &&
-      !path.endsWith(".server.ts") && !path.endsWith(".server.tsx");
+    const isClientRoute =
+      (path.includes("/routes/") || path.includes("/pages/")) &&
+      !path.endsWith(".server.ts") &&
+      !path.endsWith(".server.tsx");
+    const isComponent =
+      path.includes("/components/") &&
+      !path.endsWith(".server.ts") &&
+      !path.endsWith(".server.tsx");
 
     if ((isClientRoute || isComponent) && DB_IMPORTS.test(content)) {
       issues.push(path);
@@ -216,11 +237,16 @@ function findDuplicateLogic(files: Record<string, string>): string[][] {
 // ─── AI explanations ──────────────────────────────────────────────────────────
 
 async function addAiExplanations(findings: ArchFinding[]): Promise<void> {
-  const complex = findings.filter((f) => f.type === "circular-dep" || f.type === "separation-issue");
+  const complex = findings.filter(
+    (f) => f.type === "circular-dep" || f.type === "separation-issue",
+  );
   if (complex.length === 0) return;
 
   const items = complex
-    .map((f, i) => `${i + 1}. [${f.type}] ${f.title}\nFiles: ${f.files.join(", ")}\nDetail: ${f.detail}`)
+    .map(
+      (f, i) =>
+        `${i + 1}. [${f.type}] ${f.title}\nFiles: ${f.files.join(", ")}\nDetail: ${f.detail}`,
+    )
     .join("\n\n");
 
   const text = await aiService.analyze(
@@ -258,7 +284,9 @@ export async function runArchScan(
 ): Promise<ArchScanResult> {
   const tree = await fetchTree(token, fullName, defaultBranch);
   const sourcePaths = tree
-    .filter((n) => isSourceFile(n.path) && !n.path.includes("node_modules") && !n.path.includes(".min."))
+    .filter(
+      (n) => isSourceFile(n.path) && !n.path.includes("node_modules") && !n.path.includes(".min."),
+    )
     .sort((a, b) => (a.size ?? 0) - (b.size ?? 0)) // fetch smaller files first
     .slice(0, MAX_FILES_TO_FETCH)
     .map((n) => n.path);
@@ -270,16 +298,29 @@ export async function runArchScan(
   for (let i = 0; i < sourcePaths.length; i += BATCH) {
     const batch = sourcePaths.slice(i, i + BATCH);
     const results = await Promise.all(batch.map((p) => fetchFileContent(token, fullName, p)));
-    batch.forEach((p, j) => { if (results[j]) files[p] = results[j]!; });
+    batch.forEach((p, j) => {
+      if (results[j]) files[p] = results[j]!;
+    });
   }
 
-  const pkgContent = files["package.json"] ?? (await fetchFileContent(token, fullName, "package.json")) ?? "{}";
+  const pkgContent =
+    files["package.json"] ?? (await fetchFileContent(token, fullName, "package.json")) ?? "{}";
 
   const graph = buildGraph(files, allSourcePaths);
 
   // Detect entry points: files not imported by any other file + known entry names
-  const ENTRY_NAMES = new Set(["src/main.ts", "src/main.tsx", "src/index.ts", "src/index.tsx",
-    "index.ts", "index.js", "server.ts", "server.js", "app.ts", "app.js"]);
+  const ENTRY_NAMES = new Set([
+    "src/main.ts",
+    "src/main.tsx",
+    "src/index.ts",
+    "src/index.tsx",
+    "index.ts",
+    "index.js",
+    "server.ts",
+    "server.js",
+    "app.ts",
+    "app.js",
+  ]);
   const imported = new Set([...graph.values()].flatMap((s) => [...s]));
   const entryPoints = new Set([
     ...Object.keys(files).filter((f) => !imported.has(f) || ENTRY_NAMES.has(f)),
@@ -305,7 +346,9 @@ export async function runArchScan(
 
   // 2. Dead files (only show if we have enough coverage — >10 files fetched)
   if (Object.keys(files).length >= 10) {
-    const dead = findDeadFiles(graph, entryPoints).filter((f) => !ENTRY_NAMES.has(f)).slice(0, 8);
+    const dead = findDeadFiles(graph, entryPoints)
+      .filter((f) => !ENTRY_NAMES.has(f))
+      .slice(0, 8);
     for (const f of dead) {
       findings.push({
         id: id(),
@@ -326,7 +369,8 @@ export async function runArchScan(
       type: "unused-package",
       severity: "low",
       title: `Unused dependency: ${pkg}`,
-      detail: "Package is declared in package.json but no import was found in the source files analyzed.",
+      detail:
+        "Package is declared in package.json but no import was found in the source files analyzed.",
       files: ["package.json"],
     });
   }
@@ -341,7 +385,8 @@ export async function runArchScan(
       type: "oversized-file",
       severity: "medium",
       title: `Oversized file${kb ? ` (${kb})` : ""}`,
-      detail: "Files over ~300 lines are hard to navigate and often violate single-responsibility. Consider splitting.",
+      detail:
+        "Files over ~300 lines are hard to navigate and often violate single-responsibility. Consider splitting.",
       files: [f],
     });
   }
@@ -354,7 +399,8 @@ export async function runArchScan(
       type: "separation-issue",
       severity: "high",
       title: "Database access in client layer",
-      detail: "A route or component imports a DB client directly. Move DB access to a server-only service layer.",
+      detail:
+        "A route or component imports a DB client directly. Move DB access to a server-only service layer.",
       files: [f],
     });
   }
@@ -367,7 +413,8 @@ export async function runArchScan(
       type: "duplicate-logic",
       severity: "medium",
       title: "Possible duplicated logic",
-      detail: "These files share the same external import fingerprint. Review for copy-pasted logic that should be extracted.",
+      detail:
+        "These files share the same external import fingerprint. Review for copy-pasted logic that should be extracted.",
       files: group,
     });
   }
