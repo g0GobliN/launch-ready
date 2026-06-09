@@ -6,7 +6,7 @@ function getResend() {
   return new Resend(key);
 }
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? "noreply@launchreadyy.xyz";
+const FROM = process.env.RESEND_FROM_EMAIL ?? "hello@launchreadyy.xyz";
 
 function base(_preheader: string, body: string) {
   return `<!DOCTYPE html>
@@ -38,7 +38,7 @@ function base(_preheader: string, body: string) {
             <td style="padding:20px 36px;border-top:1px solid #e4e4e7">
               <p style="margin:0;font-size:12px;color:#a1a1aa;line-height:1.6">
                 LaunchReadyy &middot; Built for indie hackers and vibe coders<br>
-                Questions? <a href="mailto:launchreadyy@gmail.com" style="color:#16a34a;text-decoration:none">launchreadyy@gmail.com</a>
+                Questions? <a href="mailto:hello@launchreadyy.xyz" style="color:#16a34a;text-decoration:none">hello@launchreadyy.xyz</a>
               </p>
             </td>
           </tr>
