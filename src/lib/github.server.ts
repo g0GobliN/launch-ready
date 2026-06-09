@@ -39,6 +39,7 @@ export async function fetchGitHubUser(token: string): Promise<GitHubUser> {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github.v3+json",
+      "User-Agent": "LaunchReadyy/1.0",
     },
   });
   if (!res.ok) throw new Error("Failed to fetch GitHub user");
@@ -55,10 +56,14 @@ export async function fetchGitHubRepos(token: string): Promise<GitHubRepo[]> {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/vnd.github.v3+json",
+          "User-Agent": "LaunchReadyy/1.0",
         },
       },
     );
-    if (!res.ok) throw new Error("Failed to fetch GitHub repos");
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`GitHub repos API ${res.status}: ${body}`);
+    }
     const batch = (await res.json()) as GitHubRepo[];
     repos.push(...batch);
     if (batch.length < 100) break;

@@ -38,6 +38,7 @@ async function ghFetch(token: string, path: string): Promise<Response> {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github.v3+json",
+      "User-Agent": "LaunchReadyy/1.0",
     },
   });
 }

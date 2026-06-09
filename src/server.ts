@@ -64,7 +64,7 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
 
   let event: ReturnType<typeof stripe.webhooks.constructEvent>;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    event = await stripe.webhooks.constructEventAsync(rawBody, sig, webhookSecret);
   } catch (err) {
     console.error("[stripe-webhook] signature verification failed:", err);
     return new Response("Invalid signature", { status: 400 });

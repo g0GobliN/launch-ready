@@ -10,7 +10,7 @@ const GITHUB_API = "https://api.github.com";
 
 async function ghFetch(token: string, path: string) {
   return fetch(`${GITHUB_API}${path}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" },
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json", "User-Agent": "LaunchReadyy/1.0" },
   });
 }
 
