@@ -22,7 +22,10 @@ export async function loadDashboardData() {
   const login = storedUser.login;
 
   const [githubRepos, recentScans, recentJobs, planData, creditHistory] = await Promise.all([
-    fetchGitHubRepos(githubToken).catch((e) => { console.error("[dashboard] fetchGitHubRepos failed:", e); return [] as GitHubRepo[]; }),
+    fetchGitHubRepos(githubToken).catch((e) => {
+      console.error("[dashboard] fetchGitHubRepos failed:", e);
+      return [] as GitHubRepo[];
+    }),
     getRecentScans(login).catch(() => []),
     getRecentFixRequests(login).catch(() => []),
     getUserPlanData(login).catch(() => null),
