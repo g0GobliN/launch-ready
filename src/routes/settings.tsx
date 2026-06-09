@@ -165,7 +165,7 @@ function SettingsPage() {
           <BillingSection
             hasStripe={!!planData?.stripeCustomerId}
             planName={planDef.name}
-            priceYen={planDef.priceYen}
+            priceUsd={planDef.priceUsd}
             periodEnd={planData?.currentPeriodEnd ?? null}
           />
         )}
@@ -229,12 +229,12 @@ function UsageBar({
 function BillingSection({
   hasStripe,
   planName,
-  priceYen,
+  priceUsd,
   periodEnd,
 }: {
   hasStripe: boolean;
   planName: string;
-  priceYen: number;
+  priceUsd: number;
   periodEnd: string | null;
 }) {
   const [loading, setLoading] = useState(false);
@@ -265,7 +265,7 @@ function BillingSection({
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Amount</span>
-          <span className="font-semibold">¥{priceYen.toLocaleString()} / month</span>
+          <span className="font-semibold">${priceUsd} / month</span>
         </div>
         {periodEnd && (
           <div className="flex items-center justify-between">

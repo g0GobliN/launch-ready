@@ -312,10 +312,6 @@ function WorkflowPage() {
                 ))}
               </ol>
             </DetailSection>
-            <Callout icon={<AlertCircle className="h-4 w-4" />} color="warning">
-              Demo mode: GitHub integration is currently mocked. A real PR won't be created yet, but
-              you can see exactly what it would look like on the job page.
-            </Callout>
           </Step>
         </div>
 

@@ -84,7 +84,7 @@ export const loadAdminOverviewFn = createServerFn({ method: "GET" })
     const totalUsers = users?.length ?? 0;
     const paidUsers = (users ?? []).filter((u) => u.plan !== "free").length;
     const mrr = (users ?? []).reduce(
-      (sum, u) => sum + (PLANS[u.plan as keyof typeof PLANS]?.priceYen ?? 0),
+      (sum, u) => sum + (PLANS[u.plan as keyof typeof PLANS]?.priceUsd ?? 0),
       0,
     );
     const scansThisMonth = (allScans ?? []).filter((s) => s.created_at >= monthStart).length;
@@ -185,7 +185,7 @@ export const loadAdminRevenueFn = createServerFn({ method: "GET" })
       return {
         plan: PLANS[planId].name,
         users: count,
-        mrr: count * PLANS[planId].priceYen,
+        mrr: count * PLANS[planId].priceUsd,
         color: { starter: "#22c55e", pro: "#3b82f6", agency: "#f59e0b" }[planId],
       };
     });
@@ -219,11 +219,11 @@ export const loadAdminRevenueFn = createServerFn({ method: "GET" })
       );
       const cumulativePaid = (users ?? []).filter((u) => u.plan !== "free" && u.created_at <= end);
       const newMrr = newPaid.reduce(
-        (s, u) => s + (PLANS[u.plan as keyof typeof PLANS]?.priceYen ?? 0),
+        (s, u) => s + (PLANS[u.plan as keyof typeof PLANS]?.priceUsd ?? 0),
         0,
       );
       const totalMrr = cumulativePaid.reduce(
-        (s, u) => s + (PLANS[u.plan as keyof typeof PLANS]?.priceYen ?? 0),
+        (s, u) => s + (PLANS[u.plan as keyof typeof PLANS]?.priceUsd ?? 0),
         0,
       );
 

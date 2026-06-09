@@ -332,12 +332,12 @@ function Pricing() {
                   {plan.name}
                 </div>
                 <div className="mt-2">
-                  {plan.priceYen === 0 ? (
+                  {plan.priceUsd === 0 ? (
                     <span className="font-display text-3xl font-bold">Free</span>
                   ) : (
                     <>
                       <span className="font-display text-3xl font-bold">
-                        ¥{plan.priceYen.toLocaleString()}
+                        ${plan.priceUsd}
                       </span>
                       <span className="ml-1 text-sm text-muted-foreground">/ month</span>
                     </>
@@ -351,7 +351,7 @@ function Pricing() {
                     </li>
                   ))}
                 </ul>
-                {plan.priceYen === 0 ? (
+                {plan.priceUsd === 0 ? (
                   <Link
                     to="/dashboard"
                     className="mt-6 block w-full rounded-md border border-border bg-background py-2 text-center text-sm font-medium transition hover:bg-muted cursor-pointer"

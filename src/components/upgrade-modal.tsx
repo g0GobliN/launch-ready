@@ -125,11 +125,11 @@ export function UpgradeModal({ open, onClose, reason, currentPlan }: UpgradeModa
                   )}
                 </div>
                 <div className="mt-1">
-                  {plan.priceYen === 0 ? (
+                  {plan.priceUsd === 0 ? (
                     <span className="font-display text-xl font-bold">Free</span>
                   ) : (
                     <span className="font-display text-xl font-bold">
-                      ¥{plan.priceYen.toLocaleString()}
+                      ${plan.priceUsd}
                       <span className="text-xs font-normal text-muted-foreground">/mo</span>
                     </span>
                   )}

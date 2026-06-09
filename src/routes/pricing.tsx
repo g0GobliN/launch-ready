@@ -85,12 +85,12 @@ function PricingPage() {
                   {plan.name}
                 </div>
                 <div className="mt-2 cursor-pointer">
-                  {plan.priceYen === 0 ? (
+                  {plan.priceUsd === 0 ? (
                     <span className="font-display text-3xl font-bold">Free</span>
                   ) : (
                     <>
                       <span className="font-display text-3xl font-bold">
-                        ¥{plan.priceYen.toLocaleString()}
+                        ${plan.priceUsd}
                       </span>
                       <span className="ml-1 text-sm text-muted-foreground">/ month</span>
                     </>

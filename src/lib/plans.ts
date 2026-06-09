@@ -3,7 +3,7 @@ export type PlanId = "free" | "starter" | "pro" | "agency";
 export interface Plan {
   id: PlanId;
   name: string;
-  priceYen: number;
+  priceUsd: number;
   repos: number;
   scansPerMonth: number;
   aiCreditsPerMonth: number;
@@ -15,7 +15,7 @@ export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: "free",
     name: "Free",
-    priceYen: 0,
+    priceUsd: 0,
     repos: 1,
     scansPerMonth: 3,
     aiCreditsPerMonth: 0,
@@ -24,7 +24,7 @@ export const PLANS: Record<PlanId, Plan> = {
   starter: {
     id: "starter",
     name: "Starter",
-    priceYen: 980,
+    priceUsd: 7,
     repos: 3,
     scansPerMonth: 20,
     aiCreditsPerMonth: 10,
@@ -40,7 +40,7 @@ export const PLANS: Record<PlanId, Plan> = {
   pro: {
     id: "pro",
     name: "Pro",
-    priceYen: 1980,
+    priceUsd: 14,
     repos: 10,
     scansPerMonth: 100,
     aiCreditsPerMonth: 50,
@@ -56,7 +56,7 @@ export const PLANS: Record<PlanId, Plan> = {
   agency: {
     id: "agency",
     name: "Agency",
-    priceYen: 4980,
+    priceUsd: 35,
     repos: 50,
     scansPerMonth: 500,
     aiCreditsPerMonth: 250,

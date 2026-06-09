@@ -109,7 +109,7 @@ export const activatePlanFn = createServerFn({ method: "POST" })
         // best-effort — we don't have email from GitHub here, use checkout email if available
         const customerEmail = session.customer_details?.email;
         if (customerEmail) {
-          await sendPurchaseEmail(customerEmail, githubLogin, plan.name, plan.priceYen);
+          await sendPurchaseEmail(customerEmail, githubLogin, plan.name, plan.priceUsd);
         }
       }
     } catch {
