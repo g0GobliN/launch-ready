@@ -83,7 +83,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "Welcome to LaunchReadyy 🚀",
+    subject: "Welcome to LaunchReadyy",
     html: base(
       `Your account is ready, ${name}.`,
       `<h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#e6edf3">Welcome aboard, ${name}</h1>
@@ -113,7 +113,7 @@ export async function sendPurchaseEmail(
   await resend.emails.send({
     from: FROM,
     to,
-    subject: `You're now on LaunchReadyy ${planName} ✦`,
+    subject: `Your LaunchReadyy ${planName} plan is now active`,
     html: base(
       `${planName} plan is now active.`,
       `<h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#e6edf3">${planName} plan activated</h1>
@@ -235,7 +235,7 @@ export async function sendCreditsLowEmail(
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "You're running low on AI credits",
+    subject: "You are running low on AI credits",
     html: base(
       `Only ${creditsRemaining} AI credit${creditsRemaining === 1 ? "" : "s"} remaining.`,
       `<h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#e6edf3">Running low on AI credits</h1>
@@ -274,7 +274,7 @@ export async function sendLimitReachedEmail(
   await resend.emails.send({
     from: FROM,
     to,
-    subject: `You've hit your ${isScans ? "scan" : "repository"} limit`,
+    subject: `You have hit your ${isScans ? "scan" : "repository"} limit`,
     html: base(
       `Upgrade to keep going.`,
       `<h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#e6edf3">${isScans ? "Scan" : "Repository"} limit reached</h1>
