@@ -126,3 +126,19 @@ create table if not exists arch_scans (
 alter table arch_scans enable row level security;
 create policy "public read arch_scans" on arch_scans for select using (true);
 
+
+-- fix_cache: caches complete generated file output per repo+fix combination.
+-- Key: (repo_id, fix_ids). TTL enforced in application code (7 days).
+-- Covers both template and AI fixes so rescanning the same repo reuses output.
+create table if not exists fix_cache (
+  id         text primary key default gen_random_uuid()::text,
+  repo_id    text not null,
+  fix_ids    text not null,   -- sorted comma-separated fix IDs
+  framework  text not null default 'unknown',
+  files_json text not null,   -- JSON: Array<{ path: string; content: string }>
+  created_at timestamptz not null default now(),
+  unique (repo_id, fix_ids)
+);
+
+alter table fix_cache enable row level security;
+create policy "public read fix_cache" on fix_cache for select using (true);

@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { FIX_DETAILS, type FileDiff } from "@/lib/mock-data";
 import { getRepoFn, getScanFn } from "@/lib/api/db.functions";
-import { createFixRequest } from "@/lib/api/github.functions";
+import { createFixRequest, getFixPreviewFn } from "@/lib/api/github.functions";
 import { getUserPlanFn } from "@/lib/api/credits.functions";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { DiffView } from "@/components/diff-view";
@@ -14,11 +14,12 @@ import {
   FilePlus2,
   GitBranch,
   GitPullRequest,
+  Loader2,
   Package,
   ShieldCheck,
   Lock,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/repo/$repoId/fix")({
   head: () => ({ meta: [{ title: "Preview changes — LaunchReadyy" }] }),
@@ -57,12 +58,15 @@ function FixPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [upgradeModal, setUpgradeModal] = useState<"ai-fixes" | "credits" | null>(null);
+  const [realDiffs, setRealDiffs] = useState<FileDiff[] | null>(null);
+  const [diffsLoading, setDiffsLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Approximate file/dep counts from templates (instant, no server call)
   const preview = useMemo(() => {
     const added = new Set<string>();
     const changed = new Set<string>();
     const deps = new Set<string>();
-    const diffs: FileDiff[] = [];
     let credits = 0;
     selected.forEach((id) => {
       const f = FIX_DETAILS[id];
@@ -70,11 +74,43 @@ function FixPage() {
       f.files_added.forEach((x) => added.add(x));
       f.files_changed.forEach((x) => changed.add(x));
       f.deps.forEach((x) => deps.add(x));
-      f.diffs.forEach((d) => diffs.push(d));
       credits += AI_FIX_IDS.has(id) ? (AI_FIX_COSTS[id] ?? 0) : 0;
     });
-    return { added: [...added], changed: [...changed], deps: [...deps], diffs, credits };
+    return { added: [...added], changed: [...changed], deps: [...deps], credits };
   }, [selected]);
+
+  // Real diffs fetched from the server — debounced so rapid checkbox clicks don't spam
+  useEffect(() => {
+    if (selected.length === 0) {
+      setRealDiffs([]);
+      return;
+    }
+    setDiffsLoading(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const diffs = await getFixPreviewFn({ data: { repoId: repo.id, fixIds: selected } });
+        setRealDiffs(diffs as FileDiff[]);
+      } catch {
+        setRealDiffs(null); // fall back to template diffs on error
+      } finally {
+        setDiffsLoading(false);
+      }
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [selected, repo.id]);
+
+  // Use real diffs when available, fall back to template diffs
+  const displayDiffs: FileDiff[] = useMemo(() => {
+    if (realDiffs !== null) return realDiffs;
+    const diffs: FileDiff[] = [];
+    selected.forEach((id) => {
+      FIX_DETAILS[id]?.diffs.forEach((d) => diffs.push(d));
+    });
+    return diffs;
+  }, [realDiffs, selected]);
 
   const branchName = `launchreadyy/production-ready-${new Date().toISOString().slice(0, 10)}`;
 
@@ -228,17 +264,24 @@ function FixPage() {
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-display text-sm font-semibold">File diffs</h3>
-                <span className="text-xs text-muted-foreground">
-                  {preview.diffs.length} file{preview.diffs.length === 1 ? "" : "s"}
+                <span className="text-xs text-muted-foreground flex items-center gap-2">
+                  {diffsLoading && (
+                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  )}
+                  {displayDiffs.length} file{displayDiffs.length === 1 ? "" : "s"}
                 </span>
               </div>
-              {preview.diffs.length === 0 ? (
+              {displayDiffs.length === 0 && !diffsLoading ? (
                 <div className="text-sm text-muted-foreground">
                   Select a fix on the left to preview its diff.
                 </div>
+              ) : diffsLoading && displayDiffs.length === 0 ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Computing diffs…
+                </div>
               ) : (
                 <div className="space-y-3">
-                  {preview.diffs.map((d, i) => (
+                  {displayDiffs.map((d, i) => (
                     <DiffView key={`${d.path}-${i}`} diff={d} />
                   ))}
                 </div>
@@ -254,7 +297,7 @@ function FixPage() {
               <div className="flex items-center gap-3">
                 <div className="text-sm text-muted-foreground">
                   {preview.added.length} added · {preview.changed.length} changed ·{" "}
-                  {preview.deps.length} deps
+                  {preview.deps.length} dep{preview.deps.length !== 1 ? "s" : ""}
                 </div>
                 <div className="hidden items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-xs sm:flex">
                   <Coins className="h-3 w-3 text-primary" />

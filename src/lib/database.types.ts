@@ -201,6 +201,26 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["ai_test_cache"]["Insert"]>;
         Relationships: [];
       };
+      fix_cache: {
+        Row: {
+          id: string;
+          repo_id: string;
+          fix_ids: string;
+          framework: string;
+          files_json: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          repo_id: string;
+          fix_ids: string;
+          framework?: string;
+          files_json: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["fix_cache"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

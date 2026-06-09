@@ -108,10 +108,13 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
 
       try {
         const { sendPurchaseEmail } = await import("./lib/email.server");
-        const customerEmail = session.customer_details?.email;
+        const customerEmail = session.customer_details?.email ?? session.customer_email;
+        console.log(`[stripe-webhook] githubLogin=${githubLogin} customerEmail=${customerEmail ?? "null"}`);
         if (customerEmail) {
           await sendPurchaseEmail(customerEmail, githubLogin, plan.name, plan.priceUsd);
           console.log("[stripe-webhook] purchase email sent to", customerEmail);
+        } else {
+          console.warn("[stripe-webhook] no email for", githubLogin, "— email skipped");
         }
       } catch (e) {
         console.error("[stripe-webhook] purchase email error:", e);

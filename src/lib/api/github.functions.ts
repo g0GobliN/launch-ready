@@ -15,6 +15,13 @@ import {
 } from "../credits.server";
 import { AI_FIX_IDS, generateAiTests, hasAiTestCache } from "../ai-tests.server";
 import { AI_FIX_COSTS, ARCH_SCAN_COST } from "../plans";
+import {
+  createPRFromFiles,
+  computePreviewDiffs,
+  computeDiffsFromFiles,
+  collectFixFiles,
+  type AiTestFile,
+} from "../fix-executor.server";
 
 // Returns the GitHub OAuth URL — used by the Connect button in the browser.
 // Returns display info for the currently-authenticated user, or null.
@@ -199,6 +206,47 @@ export const createFixRequest = createServerFn({ method: "POST" })
 // Background job: simulates PR creation. Runs fire-and-forget so the browser
 // can be closed without cancelling the job — Node.js keeps the promise alive.
 // ownerLogin + creditCost are passed so credits can be refunded on system error.
+// ─── Fix output cache ─────────────────────────────────────────────────────────
+
+const FIX_CACHE_TTL_DAYS = 7;
+type FixFile = { path: string; content: string };
+
+async function getFixCache(
+  db: ReturnType<typeof getServiceRoleClient>,
+  repoId: string,
+  fixIds: string[],
+): Promise<FixFile[] | null> {
+  const key = [...fixIds].sort().join(",");
+  const cutoff = new Date(Date.now() - FIX_CACHE_TTL_DAYS * 86_400_000).toISOString();
+  const { data } = await db
+    .from("fix_cache")
+    .select("files_json, created_at")
+    .eq("repo_id", repoId)
+    .eq("fix_ids", key)
+    .gt("created_at", cutoff)
+    .maybeSingle();
+  if (!data) return null;
+  try {
+    return JSON.parse(data.files_json) as FixFile[];
+  } catch {
+    return null;
+  }
+}
+
+async function setFixCache(
+  db: ReturnType<typeof getServiceRoleClient>,
+  repoId: string,
+  fixIds: string[],
+  framework: string,
+  files: FixFile[],
+): Promise<void> {
+  const key = [...fixIds].sort().join(",");
+  await db.from("fix_cache").upsert(
+    { repo_id: repoId, fix_ids: key, framework, files_json: JSON.stringify(files) },
+    { onConflict: "repo_id,fix_ids" },
+  );
+}
+
 // githubToken + scanId are needed for AI test generation.
 async function runFixJob(
   jobId: string,
@@ -211,19 +259,69 @@ async function runFixJob(
 ) {
   const db = getServiceRoleClient();
   try {
-    // Run AI test generation for any AI-type fixes (uses cache when available)
-    const aiFixIds = fixIds.filter((id) => AI_FIX_IDS.has(id));
+    // Fetch branch name, default branch, framework and repo name
+    const { data: jobMeta } = await db
+      .from("fix_requests")
+      .select("repo_id, branch_name, repos(default_branch, framework, name)")
+      .eq("id", jobId)
+      .single();
+
+    const repoId = (jobMeta as { repo_id?: string } | null)?.repo_id ?? "";
+    const branchName =
+      (jobMeta as { branch_name?: string } | null)?.branch_name ??
+      `launchreadyy/fix-${jobId.slice(0, 8)}`;
+    const repoMeta = (
+      jobMeta as {
+        repos?: { default_branch?: string | null; framework?: string | null; name?: string | null } | null;
+      } | null
+    )?.repos;
+    const defaultBranch = repoMeta?.default_branch ?? "main";
+    const framework = repoMeta?.framework ?? "unknown";
+    const repoName = repoMeta?.name ?? repoFullName.split("/")[1] ?? "project";
+
+    // Check fix_cache first — skip file generation if we have a fresh result
+    type FixFile = { path: string; content: string };
+    let files: FixFile[] | null = await getFixCache(db, repoId, fixIds);
     let aiFilesJson: string | null = null;
-    if (aiFixIds.length > 0) {
-      const aiFiles = await generateAiTests(scanId, aiFixIds, repoFullName, githubToken);
-      aiFilesJson = JSON.stringify(aiFiles);
+
+    if (files) {
+      // Cache hit — still regenerate AI content if present (it may have changed)
+      const aiFixIds = fixIds.filter((id) => AI_FIX_IDS.has(id));
+      if (aiFixIds.length > 0) {
+        const rawAiFiles = await generateAiTests(scanId, aiFixIds, repoFullName, githubToken);
+        const aiFiles = rawAiFiles.map((f) => ({ path: f.path, content: f.content }));
+        aiFilesJson = JSON.stringify(aiFiles);
+        const aiPaths = new Set(aiFiles.map((f) => f.path));
+        files = [...files.filter((f) => !aiPaths.has(f.path)), ...aiFiles];
+      }
+    } else {
+      // Cache miss — generate everything fresh
+      const aiFixIds = fixIds.filter((id) => AI_FIX_IDS.has(id));
+      let aiFiles: AiTestFile[] | undefined;
+      if (aiFixIds.length > 0) {
+        const rawAiFiles = await generateAiTests(scanId, aiFixIds, repoFullName, githubToken);
+        aiFiles = rawAiFiles.map((f) => ({ path: f.path, content: f.content }));
+        aiFilesJson = JSON.stringify(aiFiles);
+      }
+      files = await collectFixFiles(githubToken, repoFullName, fixIds, {
+        framework,
+        repoName,
+        aiFiles,
+      });
+      // Persist for future jobs on this repo
+      await setFixCache(db, repoId, fixIds, framework, files);
     }
 
-    // Simulate the time a real PR creation would take
-    await new Promise<void>((resolve) => setTimeout(resolve, 2000 + Math.random() * 1500));
+    // Create branch + commit + PR on the real repo
+    const { prNumber, prUrl } = await createPRFromFiles(
+      githubToken,
+      repoFullName,
+      defaultBranch,
+      branchName,
+      fixIds,
+      files,
+    );
 
-    const prNumber = Math.floor(Math.random() * 900 + 100);
-    const prUrl = `https://github.com/${repoFullName}/pull/${prNumber}`;
     await db
       .from("fix_requests")
       .update({
@@ -379,6 +477,36 @@ export const runArchScanFn = createServerFn({ method: "POST" })
     const { runArchScan } = await import("../arch-scanner.server");
     const result = await runArchScan(githubToken, repo.full_name, repo.default_branch ?? "main");
     return saveArchScan(data.repoId, result.score, result.findings, result.scannedFiles);
+  });
+
+// Returns real diffs for the selected fixes against the user's actual repo.
+export const getFixPreviewFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ repoId: z.string(), fixIds: z.array(z.string()) }))
+  .handler(async ({ data }) => {
+    const githubToken = getGitHubToken();
+    if (!githubToken) throw new Error("Not authenticated");
+
+    const db = getServiceRoleClient();
+    const { data: repo } = await db
+      .from("repos")
+      .select("full_name, framework, name")
+      .eq("id", data.repoId)
+      .single();
+    if (!repo) throw new Error("Repo not found");
+
+    // Use cached generated files if available — only need to fetch old content for diffs
+    const cachedFiles = await getFixCache(db, data.repoId, data.fixIds);
+    if (cachedFiles) {
+      return computeDiffsFromFiles(githubToken, repo.full_name, cachedFiles);
+    }
+
+    // Cache miss — generate fresh and save
+    const files = await collectFixFiles(githubToken, repo.full_name, data.fixIds, {
+      framework: repo.framework ?? "unknown",
+      repoName: repo.name,
+    });
+    void setFixCache(db, data.repoId, data.fixIds, repo.framework ?? "unknown", files);
+    return computeDiffsFromFiles(githubToken, repo.full_name, files);
   });
 
 // Cancels a pending job.

@@ -43,7 +43,9 @@ export const createCheckoutSessionFn = createServerFn({ method: "POST" })
       line_items: [{ price: PRICE_IDS[data.planId], quantity: 1 }],
       success_url: `${appUrl}/api/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/pricing`,
-      customer_email: user.email ?? undefined,
+      customer_email: user.email || undefined, // || not ?? — empty string must also fall through
+      customer_creation: "always",
+      billing_address_collection: "auto",
       metadata: {
         github_login: user.login,
         plan_id: data.planId,
@@ -99,21 +101,19 @@ export const activatePlanFn = createServerFn({ method: "POST" })
 
     // send purchase confirmation email
     try {
-      const { data: userRow } = await db
-        .from("user_credits")
-        .select("github_login")
-        .eq("github_login", githubLogin)
-        .single();
-      if (userRow) {
-        const { sendPurchaseEmail } = await import("../email.server");
-        // best-effort — we don't have email from GitHub here, use checkout email if available
-        const customerEmail = session.customer_details?.email;
-        if (customerEmail) {
-          await sendPurchaseEmail(customerEmail, githubLogin, plan.name, plan.priceUsd);
-        }
+      const { sendPurchaseEmail } = await import("../email.server");
+      // customer_details.email is always set when checkout is completed
+      const customerEmail = session.customer_details?.email;
+      console.log(`[stripe] activatePlan: githubLogin=${githubLogin} customerEmail=${customerEmail ?? "null"} customer_email=${session.customer_email ?? "null"}`);
+      const emailTo = customerEmail ?? session.customer_email;
+      if (emailTo) {
+        await sendPurchaseEmail(emailTo, githubLogin, plan.name, plan.priceUsd);
+        console.log(`[stripe] purchase email sent to ${emailTo}`);
+      } else {
+        console.warn(`[stripe] no email available for ${githubLogin} — purchase email skipped`);
       }
-    } catch {
-      /* email is non-critical */
+    } catch (err) {
+      console.error(`[stripe] purchase email failed:`, err);
     }
 
     return { planId };
