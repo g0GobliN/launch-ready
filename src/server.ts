@@ -150,8 +150,10 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
 
       try {
         const { sendCancellationEmail } = await import("./lib/email.server");
-        if (sub.customer_email) {
-          await sendCancellationEmail(sub.customer_email, userRow.github_login, "plan");
+        const customer = await stripe.customers.retrieve(sub.customer);
+        const customerEmail = !customer.deleted && "email" in customer ? customer.email : null;
+        if (customerEmail) {
+          await sendCancellationEmail(customerEmail, userRow.github_login, "plan");
         }
       } catch {
         /* non-critical */
