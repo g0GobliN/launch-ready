@@ -89,9 +89,7 @@ function PricingPage() {
                     <span className="font-display text-3xl font-bold">Free</span>
                   ) : (
                     <>
-                      <span className="font-display text-3xl font-bold">
-                        ${plan.priceUsd}
-                      </span>
+                      <span className="font-display text-3xl font-bold">${plan.priceUsd}</span>
                       <span className="ml-1 text-sm text-muted-foreground">/ month</span>
                     </>
                   )}
