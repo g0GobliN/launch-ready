@@ -241,10 +241,12 @@ async function setFixCache(
   files: FixFile[],
 ): Promise<void> {
   const key = [...fixIds].sort().join(",");
-  await db.from("fix_cache").upsert(
-    { repo_id: repoId, fix_ids: key, framework, files_json: JSON.stringify(files) },
-    { onConflict: "repo_id,fix_ids" },
-  );
+  await db
+    .from("fix_cache")
+    .upsert(
+      { repo_id: repoId, fix_ids: key, framework, files_json: JSON.stringify(files) },
+      { onConflict: "repo_id,fix_ids" },
+    );
 }
 
 // githubToken + scanId are needed for AI test generation.
@@ -272,7 +274,11 @@ async function runFixJob(
       `launchreadyy/fix-${jobId.slice(0, 8)}`;
     const repoMeta = (
       jobMeta as {
-        repos?: { default_branch?: string | null; framework?: string | null; name?: string | null } | null;
+        repos?: {
+          default_branch?: string | null;
+          framework?: string | null;
+          name?: string | null;
+        } | null;
       } | null
     )?.repos;
     const defaultBranch = repoMeta?.default_branch ?? "main";

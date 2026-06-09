@@ -49,7 +49,11 @@ async function ghPatch<T>(token: string, path: string, body: unknown): Promise<T
   return res.json() as Promise<T>;
 }
 
-async function fetchFileContent(token: string, fullName: string, path: string): Promise<string | null> {
+async function fetchFileContent(
+  token: string,
+  fullName: string,
+  path: string,
+): Promise<string | null> {
   try {
     const data = await ghGet<{ content?: string; encoding?: string }>(
       token,
@@ -175,17 +179,20 @@ async function patchPackageJson(
   }
 
   if (Object.keys(mods.scripts).length) {
-    pkg.scripts = { ...(pkg.scripts as Record<string, string> | undefined ?? {}), ...mods.scripts };
+    pkg.scripts = {
+      ...((pkg.scripts as Record<string, string> | undefined) ?? {}),
+      ...mods.scripts,
+    };
   }
   if (Object.keys(mods.deps).length) {
     pkg.dependencies = {
-      ...(pkg.dependencies as Record<string, string> | undefined ?? {}),
+      ...((pkg.dependencies as Record<string, string> | undefined) ?? {}),
       ...mods.deps,
     };
   }
   if (Object.keys(mods.devDeps).length) {
     pkg.devDependencies = {
-      ...(pkg.devDependencies as Record<string, string> | undefined ?? {}),
+      ...((pkg.devDependencies as Record<string, string> | undefined) ?? {}),
       ...mods.devDeps,
     };
   }
@@ -501,9 +508,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 // ─── Framework-aware content generators ──────────────────────────────────────
 
 function vitestConfig(framework: string): string {
-  return framework === "Express" || framework === "unknown"
-    ? VITEST_CONFIG_NODE
-    : VITEST_CONFIG;
+  return framework === "Express" || framework === "unknown" ? VITEST_CONFIG_NODE : VITEST_CONFIG;
 }
 
 function dockerfile(framework: string): string {
@@ -513,9 +518,12 @@ function dockerfile(framework: string): string {
 }
 
 function pmCommands(pm: string) {
-  if (pm === "pnpm") return { install: "pnpm install", dev: "pnpm dev", build: "pnpm build", test: "pnpm test" };
-  if (pm === "yarn") return { install: "yarn", dev: "yarn dev", build: "yarn build", test: "yarn test" };
-  if (pm === "bun") return { install: "bun install", dev: "bun dev", build: "bun build", test: "bun test" };
+  if (pm === "pnpm")
+    return { install: "pnpm install", dev: "pnpm dev", build: "pnpm build", test: "pnpm test" };
+  if (pm === "yarn")
+    return { install: "yarn", dev: "yarn dev", build: "yarn build", test: "yarn test" };
+  if (pm === "bun")
+    return { install: "bun install", dev: "bun dev", build: "bun build", test: "bun test" };
   return { install: "npm install", dev: "npm run dev", build: "npm run build", test: "npm test" };
 }
 
@@ -537,13 +545,27 @@ async function detectPackageManager(
 }
 
 const ENV_VAR_SCAN_FILES = [
-  "src/index.ts", "src/index.js", "index.ts", "index.js",
-  "src/app.ts", "src/app.js", "app.ts", "app.js",
-  "src/server.ts", "src/server.js", "server.ts", "server.js",
-  "src/config.ts", "config.ts",
-  "src/env.ts", "src/lib/env.ts",
-  "next.config.ts", "next.config.js", "next.config.mjs",
-  "vite.config.ts", "vite.config.js",
+  "src/index.ts",
+  "src/index.js",
+  "index.ts",
+  "index.js",
+  "src/app.ts",
+  "src/app.js",
+  "app.ts",
+  "app.js",
+  "src/server.ts",
+  "src/server.js",
+  "server.ts",
+  "server.js",
+  "src/config.ts",
+  "config.ts",
+  "src/env.ts",
+  "src/lib/env.ts",
+  "next.config.ts",
+  "next.config.js",
+  "next.config.mjs",
+  "vite.config.ts",
+  "vite.config.js",
 ];
 
 const ENV_VAR_BUILTINS = new Set(["NODE_ENV", "PATH", "HOME", "USER", "PORT", "HOST", "PWD"]);
@@ -688,7 +710,10 @@ export async function collectFixFiles(
 
       case "vitest-ai": {
         const isReact = framework !== "Express" && framework !== "unknown";
-        Object.assign(pkgMods.devDeps, { vitest: "^1.6.0", ...(isReact ? { "@vitejs/plugin-react": "^4.3.0" } : {}) });
+        Object.assign(pkgMods.devDeps, {
+          vitest: "^1.6.0",
+          ...(isReact ? { "@vitejs/plugin-react": "^4.3.0" } : {}),
+        });
         Object.assign(pkgMods.scripts, { test: "vitest" });
         if (!fixIds.includes("vitest")) add("vitest.config.ts", vitestConfig(framework));
         break;
@@ -827,7 +852,10 @@ export async function createPRFromFiles(
 
   const titleSuffix =
     fixIds.length > 3
-      ? `${fixIds.slice(0, 3).map((id) => FIX_LABEL[id] ?? id).join(", ")} +${fixIds.length - 3} more`
+      ? `${fixIds
+          .slice(0, 3)
+          .map((id) => FIX_LABEL[id] ?? id)
+          .join(", ")} +${fixIds.length - 3} more`
       : labels.join(", ");
 
   const prBody = [
@@ -848,8 +876,12 @@ export async function createPRFromFiles(
   ].join("\n");
 
   const pr = await openPullRequest(
-    token, repoFullName, branchName, defaultBranch,
-    `chore: add production setup (${titleSuffix})`, prBody,
+    token,
+    repoFullName,
+    branchName,
+    defaultBranch,
+    `chore: add production setup (${titleSuffix})`,
+    prBody,
   );
 
   return { prNumber: pr.number, prUrl: pr.html_url };
@@ -894,23 +926,24 @@ interface AnnotatedOp {
 }
 
 function lcsOps(a: string[], b: string[]): AnnotatedOp[] {
-  const m = a.length, n = b.length;
+  const m = a.length,
+    n = b.length;
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       dp[i][j] =
-        a[i - 1] === b[j - 1]
-          ? dp[i - 1][j - 1] + 1
-          : Math.max(dp[i - 1][j], dp[i][j - 1]);
+        a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
     }
   }
 
   const raw: { type: "eq" | "add" | "del"; line: string }[] = [];
-  let i = m, j = n;
+  let i = m,
+    j = n;
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
       raw.unshift({ type: "eq", line: a[i - 1] });
-      i--; j--;
+      i--;
+      j--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
       raw.unshift({ type: "add", line: b[j - 1] });
       j--;
@@ -920,7 +953,8 @@ function lcsOps(a: string[], b: string[]): AnnotatedOp[] {
     }
   }
 
-  let oldNo = 0, newNo = 0;
+  let oldNo = 0,
+    newNo = 0;
   return raw.map((op) => {
     if (op.type !== "add") oldNo++;
     if (op.type !== "del") newNo++;
@@ -945,13 +979,15 @@ function opsToPreviewLines(ops: AnnotatedOp[], context = 3): PreviewDiffLine[] {
 
   const result: PreviewDiffLine[] = [];
   for (const [s, e] of ranges) {
-    let oldCount = 0, newCount = 0;
+    let oldCount = 0,
+      newCount = 0;
     for (let k = s; k <= e; k++) {
       if (ops[k].type !== "add") oldCount++;
       if (ops[k].type !== "del") newCount++;
     }
     // Old/new starting line numbers for this hunk
-    let oldStart = 0, newStart = 0;
+    let oldStart = 0,
+      newStart = 0;
     for (let k = 0; k < s; k++) {
       if (ops[k].type !== "add") oldStart = ops[k].oldNo;
       if (ops[k].type !== "del") newStart = ops[k].newNo;
@@ -977,9 +1013,7 @@ function opsToPreviewLines(ops: AnnotatedOp[], context = 3): PreviewDiffLine[] {
 
 function newFileDiffLines(content: string): PreviewDiffLine[] {
   const lines = content.trimEnd().split("\n");
-  const result: PreviewDiffLine[] = [
-    { type: "hunk", text: `@@ -0,0 +1,${lines.length} @@` },
-  ];
+  const result: PreviewDiffLine[] = [{ type: "hunk", text: `@@ -0,0 +1,${lines.length} @@` }];
   lines.forEach((line, i) => result.push({ type: "add", text: line, newNo: i + 1 }));
   return result;
 }

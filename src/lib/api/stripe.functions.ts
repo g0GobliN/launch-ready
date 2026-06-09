@@ -104,7 +104,9 @@ export const activatePlanFn = createServerFn({ method: "POST" })
       const { sendPurchaseEmail } = await import("../email.server");
       // customer_details.email is always set when checkout is completed
       const customerEmail = session.customer_details?.email;
-      console.log(`[stripe] activatePlan: githubLogin=${githubLogin} customerEmail=${customerEmail ?? "null"} customer_email=${session.customer_email ?? "null"}`);
+      console.log(
+        `[stripe] activatePlan: githubLogin=${githubLogin} customerEmail=${customerEmail ?? "null"} customer_email=${session.customer_email ?? "null"}`,
+      );
       const emailTo = customerEmail ?? session.customer_email;
       if (emailTo) {
         await sendPurchaseEmail(emailTo, githubLogin, plan.name, plan.priceUsd);
