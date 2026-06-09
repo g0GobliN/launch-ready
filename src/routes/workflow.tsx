@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/workflow")({
-  head: () => ({ meta: [{ title: "How it works — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "How it works — LaunchReadyy" }] }),
   component: WorkflowPage,
 });
 
@@ -34,7 +34,7 @@ function WorkflowPage() {
       <div className="mx-auto max-w-4xl px-6 py-16">
         <div className="text-center">
           <p className="text-xs uppercase tracking-widest text-primary">How it works</p>
-          <h1 className="mt-3 font-display text-4xl font-bold">The LaunchReady workflow</h1>
+          <h1 className="mt-3 font-display text-4xl font-bold">The LaunchReadyy workflow</h1>
           <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
             From connecting your repo to getting a production-ready pull request — here's exactly
             what happens at each step.
@@ -51,7 +51,7 @@ function WorkflowPage() {
             <DetailSection title="What happens">
               <p>
                 You click <strong>Connect GitHub</strong> and get redirected to GitHub's OAuth page.
-                GitHub asks you to authorize LaunchReady. Once you approve, we receive an access
+                GitHub asks you to authorize LaunchReadyy. Once you approve, we receive an access
                 token scoped only to what we need.
               </p>
             </DetailSection>
@@ -250,14 +250,14 @@ function WorkflowPage() {
             number="04"
             icon={<GitPullRequest className="h-6 w-6" />}
             title="Review and merge your PR"
-            summary="LaunchReady creates a branch and opens a pull request. You review it on GitHub exactly like any other PR."
+            summary="LaunchReadyy creates a branch and opens a pull request. You review it on GitHub exactly like any other PR."
           >
             <DetailSection title="What gets created">
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {[
                   {
                     icon: <GitBranch className="h-4 w-4 text-primary" />,
-                    text: "A new branch named launchready/production-ready-YYYY-MM-DD — never touching main.",
+                    text: "A new branch named launchreadyy/production-ready-YYYY-MM-DD — never touching main.",
                   },
                   {
                     icon: <GitPullRequest className="h-4 w-4 text-primary" />,

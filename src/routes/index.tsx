@@ -34,17 +34,17 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "LaunchReady — Turn your AI-built app into a production-ready project" },
+      { title: "LaunchReadyy — Turn your AI-built app into a production-ready project" },
       {
         name: "description",
         content:
           "Connect your GitHub repo, find missing engineering setup, and ship production-ready pull requests in one click.",
       },
-      { property: "og:title", content: "LaunchReady — Production-ready PRs for AI-built apps" },
+      { property: "og:title", content: "LaunchReadyy — Production-ready PRs for AI-built apps" },
       {
         property: "og:description",
         content:
-          "Cursor and other AI tools build the first 80%. LaunchReady finishes the boring production setup.",
+          "Cursor and other AI tools build the first 80%. LaunchReadyy finishes the boring production setup.",
       },
     ],
   }),
@@ -79,7 +79,7 @@ function Hero() {
             For Cursor, Bolt & Copilot builders
           </div>
           <h1 className="text-balance font-display text-5xl font-semibold leading-[1.05] sm:text-6xl md:text-7xl">
-            Your AI built the app. <span className="text-gradient">LaunchReady</span> makes it
+            Your AI built the app. <span className="text-gradient">LaunchReadyy</span> makes it
             production-ready.
           </h1>
           <p className="mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
@@ -422,7 +422,7 @@ function Pricing() {
 function FAQ() {
   const qs = [
     {
-      q: "Will LaunchReady push to my main branch?",
+      q: "Will LaunchReadyy push to my main branch?",
       a: "Never. We always create a new branch and open a pull request for you to review. You stay in full control — nothing merges without your approval.",
     },
     {
@@ -476,7 +476,7 @@ function CTA() {
           Ship like a senior engineer.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-          Stop manually setting up CI, tests, and Docker. Let LaunchReady open the PR.
+          Stop manually setting up CI, tests, and Docker. Let LaunchReadyy open the PR.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
@@ -512,7 +512,7 @@ function Footer() {
   return (
     <footer className="border-t border-border/60 py-10">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
-        <div>© {new Date().getFullYear()} LaunchReady</div>
+        <div>© {new Date().getFullYear()} LaunchReadyy</div>
         <div>Built for vibe coders. Made production-grade.</div>
       </div>
     </footer>

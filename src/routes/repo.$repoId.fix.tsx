@@ -21,7 +21,7 @@ import {
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId/fix")({
-  head: () => ({ meta: [{ title: "Preview changes — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Preview changes — LaunchReadyy" }] }),
   validateSearch: (s: Record<string, unknown>) => ({ fixes: (s.fixes as string) ?? "" }),
   component: FixPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
@@ -76,7 +76,7 @@ function FixPage() {
     return { added: [...added], changed: [...changed], deps: [...deps], diffs, credits };
   }, [selected]);
 
-  const branchName = `launchready/production-ready-${new Date().toISOString().slice(0, 10)}`;
+  const branchName = `launchreadyy/production-ready-${new Date().toISOString().slice(0, 10)}`;
 
   const submit = async () => {
     setSubmitting(true);
@@ -128,7 +128,7 @@ function FixPage() {
         </Link>
         <h1 className="mt-4 font-display text-2xl font-semibold">Preview your pull request</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Review what LaunchReady will add to <span className="font-mono">{repo.full_name}</span>.
+          Review what LaunchReadyy will add to <span className="font-mono">{repo.full_name}</span>.
         </p>
 
         <div className="mt-5 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
@@ -138,7 +138,7 @@ function FixPage() {
               We never commit directly to <span className="font-mono">main</span>.
             </div>
             <div className="mt-0.5 text-muted-foreground">
-              LaunchReady creates a new branch and opens a Pull Request you can review before
+              LaunchReadyy creates a new branch and opens a Pull Request you can review before
               merging.
             </div>
           </div>

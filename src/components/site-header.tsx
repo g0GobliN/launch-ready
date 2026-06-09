@@ -43,7 +43,7 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
               style={{ transform: "scale(0.8)", transformOrigin: "center" }}
             />
           </div>
-          LaunchReady
+          LaunchReadyy
         </Link>
 
         {isAdmin ? (

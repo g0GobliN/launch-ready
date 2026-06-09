@@ -25,11 +25,11 @@ import { useState, useEffect, useRef } from "react";
 export const Route = createFileRoute("/demo")({
   head: () => ({
     meta: [
-      { title: "Live Demo — LaunchReady" },
+      { title: "Live Demo — LaunchReadyy" },
       {
         name: "description",
         content:
-          "See how LaunchReady scans a repo, scores production readiness, and generates a pull request with every missing engineering setup.",
+          "See how LaunchReadyy scans a repo, scores production readiness, and generates a pull request with every missing engineering setup.",
       },
     ],
   }),
@@ -257,7 +257,7 @@ function TerminalBox({
         <span className="h-2 w-2 rounded-full bg-critical/60" />
         <span className="h-2 w-2 rounded-full bg-warning/60" />
         <span className="h-2 w-2 rounded-full bg-success/60" />
-        <span className="ml-2 text-[11px] text-muted-foreground">launchready — {title}</span>
+        <span className="ml-2 text-[11px] text-muted-foreground">launchreadyy — {title}</span>
       </div>
       <div className="space-y-1">
         {lines.map((l, i) => (
@@ -309,7 +309,7 @@ function PRModal({ onClose, timeSaved }: { onClose: () => void; timeSaved: numbe
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">branch</span>
             <code className="rounded bg-background px-2 py-0.5 text-xs text-primary">
-              launchready/production-ready-2025-06-06
+              launchreadyy/production-ready-2025-06-06
             </code>
           </div>
           <div className="flex items-center justify-between">
@@ -350,7 +350,7 @@ function PRModal({ onClose, timeSaved }: { onClose: () => void; timeSaved: numbe
         {thanked ? (
           <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4 text-center">
             <p className="font-display font-semibold text-foreground">
-              Thanks for trying LaunchReady!
+              Thanks for trying LaunchReadyy!
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               This was a demo PR — connect your real repo to get one just like it, for free.
@@ -447,7 +447,7 @@ function DemoPage() {
             Interactive demo — no GitHub account needed
           </div>
           <h1 className="font-display text-4xl font-bold sm:text-5xl">
-            See LaunchReady in <span className="text-gradient">action</span>
+            See LaunchReadyy in <span className="text-gradient">action</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
             Watch us scan a real-world AI-built SaaS repo, surface every missing piece, and generate
@@ -637,7 +637,7 @@ function DemoPage() {
                 <div className="text-sm">
                   <span className="font-semibold text-success">PR #42 opened</span>
                   <span className="text-muted-foreground ml-2">
-                    launchready/production-ready-2025-06-06 · ~{timeSaved.toFixed(1)}h saved
+                    launchreadyy/production-ready-2025-06-06 · ~{timeSaved.toFixed(1)}h saved
                   </span>
                 </div>
                 <button

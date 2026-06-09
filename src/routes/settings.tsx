@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Settings — LaunchReadyy" }] }),
   loader: async () => {
     const data = await loadDashboardFn();
     if (!data.user) throw redirect({ to: "/dashboard" });

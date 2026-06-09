@@ -30,7 +30,7 @@ const dashboardSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — LaunchReadyy" }] }),
   validateSearch: dashboardSearchSchema,
   loader: () => loadDashboardFn(),
   component: Dashboard,
@@ -65,7 +65,7 @@ function ConnectPage({ authError }: { authError?: string }) {
         </div>
         <h1 className="mt-5 font-display text-2xl font-semibold">Connect your GitHub account</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Authorize LaunchReady to read your repositories. We never commit to your branches without
+          Authorize LaunchReadyy to read your repositories. We never commit to your branches without
           your review.
         </p>
         {authError && (

@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/pricing")({
-  head: () => ({ meta: [{ title: "Pricing — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Pricing — LaunchReadyy" }] }),
   loader: () => getUserPlanFn().catch(() => null),
   component: PricingPage,
 });

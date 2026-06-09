@@ -26,7 +26,7 @@ import type { Database } from "@/lib/database.types";
 type FixRequestRow = Database["public"]["Tables"]["fix_requests"]["Row"];
 
 export const Route = createFileRoute("/repo/$repoId/job/$jobId")({
-  head: () => ({ meta: [{ title: "Fix request — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Fix request — LaunchReadyy" }] }),
   component: JobPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
   errorComponent: ({ error }) => (
@@ -334,7 +334,7 @@ function CompletedView({
         </div>
         <h2 className="mt-5 font-display text-2xl font-semibold">Pull request created</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          LaunchReady opened PR #{job.pr_number} and it's ready for your review.
+          LaunchReadyy opened PR #{job.pr_number} and it's ready for your review.
         </p>
         {job.pr_url && (
           <a

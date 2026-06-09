@@ -24,7 +24,7 @@ import {
 import { useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId_/arch")({
-  head: () => ({ meta: [{ title: "Architecture — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Architecture — LaunchReadyy" }] }),
   component: ArchPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
   errorComponent: ({ error }) => (

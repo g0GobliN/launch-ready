@@ -5,7 +5,7 @@ import { getRepoFn } from "@/lib/api/db.functions";
 import { CheckCircle2, ExternalLink, FileCode2, GitPullRequest, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/pr/$repoId")({
-  head: () => ({ meta: [{ title: "Pull request created — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Pull request created — LaunchReadyy" }] }),
   validateSearch: (s: Record<string, unknown>) => ({ fixes: (s.fixes as string) ?? "" }),
   component: PRPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
@@ -41,7 +41,7 @@ function PRPage() {
           </div>
           <h1 className="mt-5 font-display text-3xl font-semibold">Pull request created</h1>
           <p className="mt-2 text-muted-foreground">
-            LaunchReady opened a PR on <span className="font-mono">{repo.full_name}</span>. Review
+            LaunchReadyy opened a PR on <span className="font-mono">{repo.full_name}</span>. Review
             and merge to ship the upgrades.
           </p>
           <a

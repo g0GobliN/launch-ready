@@ -15,12 +15,12 @@ function base(title: string, body: string) {
 <body style="margin:0;padding:0;background:#191d27;font-family:Inter,system-ui,sans-serif;color:#f0f0f0">
   <div style="max-width:520px;margin:40px auto;padding:0 20px">
     <div style="margin-bottom:28px">
-      <span style="background:#22c55e;color:#0f1a0f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:6px">LaunchReady</span>
+      <span style="background:#22c55e;color:#0f1a0f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:6px">LaunchReadyy</span>
     </div>
     <h1 style="font-size:22px;font-weight:700;margin:0 0 12px">${title}</h1>
     ${body}
     <div style="margin-top:40px;padding-top:20px;border-top:1px solid #2a2f3d;font-size:12px;color:#6b7280">
-      LaunchReady · Built for indie hackers and vibe coders
+      LaunchReadyy · Built for indie hackers and vibe coders
     </div>
   </div>
 </body>
@@ -33,7 +33,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "Welcome to LaunchReady",
+    subject: "Welcome to LaunchReadyy",
     html: base(
       `Welcome, ${name}!`,
       `<p style="color:#9ca3af;line-height:1.6">Your GitHub account is connected. You're on the <strong style="color:#f0f0f0">Free plan</strong> — 1 repo, 3 scans per month.</p>
@@ -54,7 +54,7 @@ export async function sendPurchaseEmail(
   await resend.emails.send({
     from: FROM,
     to,
-    subject: `You're on LaunchReady ${planName}`,
+    subject: `You're on LaunchReadyy ${planName}`,
     html: base(
       `${planName} plan activated`,
       `<p style="color:#9ca3af;line-height:1.6">Thanks for upgrading, ${name}. Your <strong style="color:#f0f0f0">${planName}</strong> plan is now active.</p>
@@ -77,7 +77,7 @@ export async function sendCancellationEmail(to: string, name: string, planName: 
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "Your LaunchReady subscription has been cancelled",
+    subject: "Your LaunchReadyy subscription has been cancelled",
     html: base(
       "Subscription cancelled",
       `<p style="color:#9ca3af;line-height:1.6">Hi ${name}, your <strong style="color:#f0f0f0">${planName}</strong> subscription has been cancelled. You'll keep access until the end of your current billing period.</p>

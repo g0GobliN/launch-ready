@@ -6,7 +6,7 @@ import { ArrowRight, BrainCircuit, Clock, Github } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId/")({
-  head: () => ({ meta: [{ title: "Analysis — LaunchReady" }] }),
+  head: () => ({ meta: [{ title: "Analysis — LaunchReadyy" }] }),
   component: RepoPage,
   notFoundComponent: () => <div className="p-10 text-center">Repo not found.</div>,
   errorComponent: ({ error }) => (
