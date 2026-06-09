@@ -1,8 +1,12 @@
-# LaunchReadyy
+<p align="center">
+  <img src="public/logo/horizontal_logo.png" alt="LaunchReadyy" width="260" />
+</p>
 
-**Your AI-built app ships broken. LaunchReadyy fixes that.**
+<h1 align="center">LaunchReadyy</h1>
 
-→ **[launchreadyy.xyz](https://launchreadyy.xyz)**
+<p align="center"><strong>Your AI-built app ships broken. LaunchReadyy fixes that.</strong></p>
+
+<p align="center"><a href="https://launchreadyy.xyz">launchreadyy.xyz</a></p>
 
 ---
 
