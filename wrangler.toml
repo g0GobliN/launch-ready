@@ -1,7 +1,7 @@
 name = "launch-ready"
 compatibility_date = "2026-06-06"
 compatibility_flags = [ "nodejs_compat", "nodejs_compat_populate_process_env" ]
-main = "src/server.ts"
+main = "dist/server/server.js"
 
 [assets]
 directory = "dist/client"
