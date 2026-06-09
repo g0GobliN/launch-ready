@@ -44,7 +44,6 @@ export const createCheckoutSessionFn = createServerFn({ method: "POST" })
       success_url: `${appUrl}/api/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/pricing`,
       customer_email: user.email || undefined, // || not ?? — empty string must also fall through
-      customer_creation: "always",
       billing_address_collection: "auto",
       metadata: {
         github_login: user.login,
