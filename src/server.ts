@@ -166,11 +166,17 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
   if (event.type === "customer.subscription.updated") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sub = event.data.object as any;
-    const { data: userRow } = await db
+    console.log(
+      `[stripe-webhook] subscription.updated sub.id=${sub.id} cancel_at_period_end=${sub.cancel_at_period_end}`,
+    );
+    const { data: userRow, error: userRowError } = await db
       .from("user_credits")
       .select("github_login, email")
       .eq("stripe_subscription_id", sub.id)
       .single();
+    console.log(
+      `[stripe-webhook] userRow=${JSON.stringify(userRow)} error=${JSON.stringify(userRowError)}`,
+    );
 
     if (userRow) {
       if (sub.cancel_at_period_end) {
