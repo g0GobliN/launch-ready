@@ -57,7 +57,7 @@ export async function exchangeOAuthCode(code: string) {
   });
 
   // Persist email and detect new users
-  if (login && email) {
+  if (login) {
     const { getServiceRoleClient } = await import("./supabase.server");
     const db = getServiceRoleClient();
     const { data: existing } = await db
@@ -65,16 +65,19 @@ export async function exchangeOAuthCode(code: string) {
       .select("github_login, email")
       .eq("github_login", login)
       .single();
-    if (!existing) {
+    if (!existing && email) {
       const { sendWelcomeEmail } = await import("./email.server");
       sendWelcomeEmail(email, login).catch(() => {});
     }
+    const upsertData: Record<string, unknown> = {
+      github_login: login,
+      updated_at: new Date().toISOString(),
+    };
+    // Only overwrite email if GitHub returned one and DB doesn't have one yet
+    if (email && !existing?.email) upsertData.email = email;
     await db
       .from("user_credits")
-      .upsert(
-        { github_login: login, email, updated_at: new Date().toISOString() },
-        { onConflict: "github_login" },
-      );
+      .upsert(upsertData, { onConflict: "github_login" });
   }
 
   return { error: null };
