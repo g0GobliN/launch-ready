@@ -74,9 +74,10 @@ alter table fix_requests add column if not exists owner_login text;
 
 -- user_credits: one row per GitHub user, auto-provisioned on first use
 create table if not exists user_credits (
-  github_login text primary key,
-  balance      integer not null default 100,
-  updated_at   timestamptz not null default now()
+  github_login       text primary key,
+  balance            integer not null default 100,
+  updated_at         timestamptz not null default now(),
+  email_unsubscribed boolean not null default false
 );
 
 alter table user_credits enable row level security;

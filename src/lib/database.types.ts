@@ -122,6 +122,7 @@ export type Database = {
           is_admin: boolean;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
+          email_unsubscribed: boolean;
         };
         Insert: {
           github_login: string;
@@ -137,6 +138,7 @@ export type Database = {
           is_admin?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          email_unsubscribed?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["user_credits"]["Insert"]>;
         Relationships: [];

@@ -185,15 +185,87 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
   return new Response("ok", { status: 200 });
 }
 
+async function handleUnsubscribe(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const login = url.searchParams.get("login");
+  const token = url.searchParams.get("token");
+
+  if (!login || !token) {
+    return new Response("Invalid unsubscribe link.", { status: 400 });
+  }
+
+  const { verifyUnsubscribeToken } = await import("./lib/email.server");
+  if (!verifyUnsubscribeToken(login, token)) {
+    return new Response("Invalid or expired unsubscribe link.", { status: 400 });
+  }
+
+  const { getServiceRoleClient } = await import("./lib/supabase.server");
+  const db = getServiceRoleClient();
+  await db
+    .from("user_credits")
+    .update({ email_unsubscribed: true })
+    .eq("github_login", login);
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Unsubscribed — LaunchReadyy</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#111111">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center" style="padding:80px 16px">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background:#ffffff;border:1px solid #e4e4e7;border-radius:8px">
+          <tr>
+            <td style="padding:32px 36px 24px">
+              <span style="background:#16a34a;border-radius:6px;padding:5px 12px;color:#ffffff;font-weight:bold;font-size:14px">LaunchReadyy</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 36px 36px">
+              <h1 style="margin:0 0 12px;font-size:22px;font-weight:bold;color:#111111">You've been unsubscribed</h1>
+              <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;line-height:1.7">You will no longer receive email notifications from LaunchReadyy.</p>
+              <p style="margin:0;font-size:14px;color:#71717a;line-height:1.6">Changed your mind? You can re-enable emails from your account settings.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return new Response(html, {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    // Intercept Stripe webhook before TanStack SSR
     const url = new URL(request.url);
+
+    // Intercept Stripe webhook before TanStack SSR
     if (request.method === "POST" && url.pathname === "/api/stripe/webhook") {
       try {
         return await handleStripeWebhook(request);
       } catch (error) {
         console.error("[stripe-webhook] unhandled error:", error);
+        return new Response("Internal error", { status: 500 });
+      }
+    }
+
+    // One-click unsubscribe (GET from email link, POST from Apple Mail / Gmail)
+    if (
+      (request.method === "GET" || request.method === "POST") &&
+      url.pathname === "/api/unsubscribe"
+    ) {
+      try {
+        return await handleUnsubscribe(request);
+      } catch (error) {
+        console.error("[unsubscribe] unhandled error:", error);
         return new Response("Internal error", { status: 500 });
       }
     }
