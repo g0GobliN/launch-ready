@@ -186,6 +186,24 @@ export async function sendPurchaseEmail(
   });
 }
 
+export async function sendResubscribeEmail(to: string, name: string, planName: string) {
+  const resend = getResend();
+  if (!resend) return;
+  if (await isUnsubscribed(name)) return;
+  const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">Welcome back!</h1>
+       <p style="margin:0 0 12px;font-size:15px;color:#3f3f46;line-height:1.7">Hi <strong>${name}</strong>, your ${planName} subscription has been reactivated.</p>
+       <p style="margin:0;font-size:15px;color:#3f3f46;line-height:1.7">Everything is back to normal — your plan, credits, and limits are all active. Good to have you back.</p>`;
+  const html = base(bodyHtml, name);
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "Your LaunchReadyy subscription is back",
+    html,
+    text: toPlainText(html),
+    headers: emailHeaders(name),
+  });
+}
+
 export async function sendCancellationEmail(to: string, name: string, planName: string) {
   const resend = getResend();
   if (!resend) return;

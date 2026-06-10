@@ -193,11 +193,26 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
           /* non-critical */
         }
       } else {
-        // Reactivated — clear cancel flag
+        // Reactivated — clear cancel flag and notify
         await db
           .from("user_credits")
           .update({ subscription_cancel_at: null, updated_at: new Date().toISOString() })
           .eq("github_login", userRow.github_login);
+        try {
+          const { sendResubscribeEmail } = await import("./lib/email.server");
+          const { data: planRow } = await db
+            .from("user_credits")
+            .select("plan")
+            .eq("github_login", userRow.github_login)
+            .single();
+          const { PLANS } = await import("./lib/plans");
+          const planName = PLANS[(planRow?.plan as keyof typeof PLANS) ?? "free"]?.name ?? "plan";
+          const email =
+            userRow.email ??
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (await stripe.customers.retrieve(sub.customer).then((c: any) => (!c.deleted && "email" in c ? c.email : null)).catch(() => null));
+          if (email) await sendResubscribeEmail(email, userRow.github_login, planName);
+        } catch { /* non-critical */ }
       }
     }
   }
