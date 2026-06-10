@@ -201,10 +201,7 @@ async function handleUnsubscribe(request: Request): Promise<Response> {
 
   const { getServiceRoleClient } = await import("./lib/supabase.server");
   const db = getServiceRoleClient();
-  await db
-    .from("user_credits")
-    .update({ email_unsubscribed: true })
-    .eq("github_login", login);
+  await db.from("user_credits").update({ email_unsubscribed: true }).eq("github_login", login);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
