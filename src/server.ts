@@ -207,12 +207,18 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
             .single();
           const { PLANS } = await import("./lib/plans");
           const planName = PLANS[(planRow?.plan as keyof typeof PLANS) ?? "free"]?.name ?? "plan";
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const getEmail = (c: any) => (!c.deleted && "email" in c ? c.email : null);
           const email =
             userRow.email ??
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (await stripe.customers.retrieve(sub.customer).then((c: any) => (!c.deleted && "email" in c ? c.email : null)).catch(() => null));
+            (await stripe.customers
+              .retrieve(sub.customer)
+              .then(getEmail)
+              .catch(() => null));
           if (email) await sendResubscribeEmail(email, userRow.github_login, planName);
-        } catch { /* non-critical */ }
+        } catch {
+          /* non-critical */
+        }
       }
     }
   }
