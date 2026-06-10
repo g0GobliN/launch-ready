@@ -193,31 +193,35 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
           /* non-critical */
         }
       } else {
-        // Reactivated — clear cancel flag and notify
+        // Only treat as reactivation if the user had previously cancelled
+        const { data: currentRow } = await db
+          .from("user_credits")
+          .select("plan, subscription_cancel_at")
+          .eq("github_login", userRow.github_login)
+          .single();
+        const wasScheduledToCancel = !!currentRow?.subscription_cancel_at;
         await db
           .from("user_credits")
           .update({ subscription_cancel_at: null, updated_at: new Date().toISOString() })
           .eq("github_login", userRow.github_login);
-        try {
-          const { sendResubscribeEmail } = await import("./lib/email.server");
-          const { data: planRow } = await db
-            .from("user_credits")
-            .select("plan")
-            .eq("github_login", userRow.github_login)
-            .single();
-          const { PLANS } = await import("./lib/plans");
-          const planName = PLANS[(planRow?.plan as keyof typeof PLANS) ?? "free"]?.name ?? "plan";
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const getEmail = (c: any) => (!c.deleted && "email" in c ? c.email : null);
-          const email =
-            userRow.email ??
-            (await stripe.customers
-              .retrieve(sub.customer)
-              .then(getEmail)
-              .catch(() => null));
-          if (email) await sendResubscribeEmail(email, userRow.github_login, planName);
-        } catch {
-          /* non-critical */
+        if (wasScheduledToCancel) {
+          try {
+            const { sendResubscribeEmail } = await import("./lib/email.server");
+            const { PLANS } = await import("./lib/plans");
+            const planName =
+              PLANS[(currentRow?.plan as keyof typeof PLANS) ?? "free"]?.name ?? "plan";
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const getEmail = (c: any) => (!c.deleted && "email" in c ? c.email : null);
+            const email =
+              userRow.email ??
+              (await stripe.customers
+                .retrieve(sub.customer)
+                .then(getEmail)
+                .catch(() => null));
+            if (email) await sendResubscribeEmail(email, userRow.github_login, planName);
+          } catch {
+            /* non-critical */
+          }
         }
       }
     }
