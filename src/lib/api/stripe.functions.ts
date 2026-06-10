@@ -98,24 +98,6 @@ export const activatePlanFn = createServerFn({ method: "POST" })
       { onConflict: "github_login" },
     );
 
-    // send purchase confirmation email
-    try {
-      const { sendPurchaseEmail } = await import("../email.server");
-      // customer_details.email is always set when checkout is completed
-      const customerEmail = session.customer_details?.email;
-      console.log(
-        `[stripe] activatePlan: githubLogin=${githubLogin} customerEmail=${customerEmail ?? "null"} customer_email=${session.customer_email ?? "null"}`,
-      );
-      const emailTo = customerEmail ?? session.customer_email;
-      if (emailTo) {
-        await sendPurchaseEmail(emailTo, githubLogin, plan.name, plan.priceUsd);
-        console.log(`[stripe] purchase email sent to ${emailTo}`);
-      } else {
-        console.warn(`[stripe] no email available for ${githubLogin} — purchase email skipped`);
-      }
-    } catch (err) {
-      console.error(`[stripe] purchase email failed:`, err);
-    }
 
     return { planId };
   });

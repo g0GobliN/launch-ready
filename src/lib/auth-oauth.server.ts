@@ -45,13 +45,37 @@ export async function exchangeOAuthCode(code: string) {
   }
 
   const u = data.session.user;
+  const login = (u.user_metadata.user_name ?? u.user_metadata.preferred_username ?? "") as string;
+  const email = u.email ?? "";
+
   storeGitHubToken(data.session.provider_token);
   storeUserInfo({
     id: u.id,
-    login: (u.user_metadata.user_name ?? u.user_metadata.preferred_username ?? "") as string,
+    login,
     avatarUrl: (u.user_metadata.avatar_url ?? "") as string,
-    email: u.email ?? "",
+    email,
   });
+
+  // Persist email and detect new users
+  if (login && email) {
+    const { getServiceRoleClient } = await import("./supabase.server");
+    const db = getServiceRoleClient();
+    const { data: existing } = await db
+      .from("user_credits")
+      .select("github_login, email")
+      .eq("github_login", login)
+      .single();
+    if (!existing) {
+      const { sendWelcomeEmail } = await import("./email.server");
+      sendWelcomeEmail(email, login).catch(() => {});
+    }
+    await db
+      .from("user_credits")
+      .upsert(
+        { github_login: login, email, updated_at: new Date().toISOString() },
+        { onConflict: "github_login" },
+      );
+  }
 
   return { error: null };
 }

@@ -167,6 +167,7 @@ function SettingsPage() {
             planName={planDef.name}
             priceUsd={planDef.priceUsd}
             periodEnd={planData?.currentPeriodEnd ?? null}
+            cancelAt={planData?.subscriptionCancelAt ?? null}
           />
         )}
 
@@ -231,11 +232,13 @@ function BillingSection({
   planName,
   priceUsd,
   periodEnd,
+  cancelAt,
 }: {
   hasStripe: boolean;
   planName: string;
   priceUsd: number;
   periodEnd: string | null;
+  cancelAt: string | null;
 }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -269,9 +272,11 @@ function BillingSection({
         </div>
         {periodEnd && (
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Next billing date</span>
+            <span className="text-muted-foreground">
+              {cancelAt ? "Access until" : "Next billing date"}
+            </span>
             <span className="font-semibold">
-              {new Date(periodEnd).toLocaleDateString("en-US", {
+              {new Date(cancelAt ?? periodEnd).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
@@ -280,6 +285,26 @@ function BillingSection({
           </div>
         )}
       </div>
+
+      {cancelAt && (
+        <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm">
+          <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium text-yellow-600 dark:text-yellow-400">
+              Subscription cancelled
+            </p>
+            <p className="text-muted-foreground mt-0.5">
+              You have full access until{" "}
+              {new Date(cancelAt).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+              . After that your account moves to the Free plan.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 space-y-2">
         {hasStripe ? (

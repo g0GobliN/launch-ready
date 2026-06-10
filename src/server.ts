@@ -144,6 +144,7 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
           balance: 0,
           ai_credits_total: 0,
           stripe_subscription_id: null,
+          subscription_cancel_at: null,
           updated_at: new Date().toISOString(),
         })
         .eq("github_login", userRow.github_login);
@@ -157,6 +158,46 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
         }
       } catch {
         /* non-critical */
+      }
+    }
+  }
+
+  // customer.subscription.updated — handle cancel_at_period_end (user cancelled, still active until period ends)
+  if (event.type === "customer.subscription.updated") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sub = event.data.object as any;
+    const { data: userRow } = await db
+      .from("user_credits")
+      .select("github_login, email")
+      .eq("stripe_subscription_id", sub.id)
+      .single();
+
+    if (userRow) {
+      if (sub.cancel_at_period_end) {
+        const cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null;
+        await db
+          .from("user_credits")
+          .update({ subscription_cancel_at: cancelAt, updated_at: new Date().toISOString() })
+          .eq("github_login", userRow.github_login);
+        try {
+          const { sendCancellationEmail } = await import("./lib/email.server");
+          const email =
+            userRow.email ??
+            (await stripe.customers
+              .retrieve(sub.customer)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .then((c: any) => (!c.deleted && "email" in c ? c.email : null))
+              .catch(() => null));
+          if (email) await sendCancellationEmail(email, userRow.github_login, "plan");
+        } catch {
+          /* non-critical */
+        }
+      } else {
+        // Reactivated — clear cancel flag
+        await db
+          .from("user_credits")
+          .update({ subscription_cancel_at: null, updated_at: new Date().toISOString() })
+          .eq("github_login", userRow.github_login);
       }
     }
   }

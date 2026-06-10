@@ -11,7 +11,10 @@ export interface UserPlanData {
   currentPeriodEnd: string;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
+  subscriptionCancelAt: string | null;
 }
+
+const LOW_CREDITS_THRESHOLD = 3;
 
 export interface CreditTransaction {
   id: string;
@@ -92,6 +95,7 @@ export async function getUserPlanData(login: string): Promise<UserPlanData> {
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       stripeCustomerId: null,
       stripeSubscriptionId: null,
+      subscriptionCancelAt: null,
     };
   }
   return {
@@ -103,12 +107,22 @@ export async function getUserPlanData(login: string): Promise<UserPlanData> {
     currentPeriodEnd: data.current_period_end,
     stripeCustomerId: data.stripe_customer_id ?? null,
     stripeSubscriptionId: data.stripe_subscription_id ?? null,
+    subscriptionCancelAt: data.subscription_cancel_at ?? null,
   };
 }
 
 export async function checkScanLimit(login: string): Promise<void> {
   const d = await getUserPlanData(login);
   if (d.monthlyScanUsed >= d.monthlyScanLimit) {
+    const { data: row } = await getServiceRoleClient()
+      .from("user_credits")
+      .select("email")
+      .eq("github_login", login)
+      .single();
+    if (row?.email) {
+      const { sendLimitReachedEmail } = await import("./email.server");
+      sendLimitReachedEmail(row.email, login, "scans", PLANS[d.plan].name).catch(() => {});
+    }
     throw new Error(`LIMIT:scan:${d.plan}:${d.monthlyScanUsed}/${d.monthlyScanLimit}`);
   }
 }
@@ -136,7 +150,7 @@ export async function checkRepoLimit(login: string): Promise<void> {
   const db = getServiceRoleClient();
   const { data: planRow } = await db
     .from("user_credits")
-    .select("plan")
+    .select("plan, email")
     .eq("github_login", login)
     .single();
   const plan = PLANS[(planRow?.plan as PlanId) ?? "free"];
@@ -145,6 +159,10 @@ export async function checkRepoLimit(login: string): Promise<void> {
     .select("*", { count: "exact", head: true })
     .eq("owner", login);
   if ((count ?? 0) >= plan.repos) {
+    if (planRow?.email) {
+      const { sendLimitReachedEmail } = await import("./email.server");
+      sendLimitReachedEmail(planRow.email, login, "repos", plan.name).catch(() => {});
+    }
     throw new Error(`LIMIT:repo:${plan.id}:${count}/${plan.repos}`);
   }
 }
@@ -177,10 +195,27 @@ export async function deductCredits(login: string, amount: number, jobId: string
     .single();
   if (!data || data.balance < amount)
     throw new Error("Insufficient AI credits. Please upgrade your plan.");
+  const newBalance = data.balance - amount;
   await db
     .from("user_credits")
-    .update({ balance: data.balance - amount, updated_at: new Date().toISOString() })
+    .update({ balance: newBalance, updated_at: new Date().toISOString() })
     .eq("github_login", login);
+  if (newBalance <= LOW_CREDITS_THRESHOLD) {
+    const { data: row } = await db
+      .from("user_credits")
+      .select("email, plan")
+      .eq("github_login", login)
+      .single();
+    if (row?.email) {
+      const { sendCreditsLowEmail } = await import("./email.server");
+      sendCreditsLowEmail(
+        row.email,
+        login,
+        newBalance,
+        PLANS[(row.plan as PlanId) ?? "free"].name,
+      ).catch(() => {});
+    }
+  }
   await db.from("credit_transactions").insert({
     id: crypto.randomUUID(),
     github_login: login,
