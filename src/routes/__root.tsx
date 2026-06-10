@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 
@@ -112,18 +112,32 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RouterProgressBar() {
   const isLoading = useRouterState({ select: (s) => s.status === "pending" });
+  const [width, setWidth] = useState(0);
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    if (isLoading) {
+      setOpacity(1);
+      setWidth(80);
+    } else {
+      setWidth(100);
+      const t = setTimeout(() => setOpacity(0), 200);
+      return () => clearTimeout(t);
+    }
+  }, [isLoading]);
+
   return (
     <div
-      className="pointer-events-none fixed top-0 left-0 right-0 z-50 h-0.5 transition-opacity duration-300"
-      style={{ opacity: isLoading ? 1 : 0 }}
+      className="pointer-events-none fixed top-0 left-0 right-0 z-50 h-0.5"
+      style={{ opacity, transition: "opacity 300ms" }}
       suppressHydrationWarning
     >
       <div
         className="h-full bg-primary"
         suppressHydrationWarning
         style={{
-          width: isLoading ? "90%" : "0%",
-          transition: isLoading ? "width 8s cubic-bezier(0.1, 0.05, 0, 1)" : "none",
+          width: `${width}%`,
+          transition: width === 80 ? "width 8s cubic-bezier(0.1, 0.05, 0, 1)" : "width 200ms ease",
         }}
       />
     </div>
