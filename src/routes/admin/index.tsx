@@ -138,7 +138,7 @@ function AdminOverview() {
         />
         <StatCard
           label="MRR"
-          value={`¥${stats.mrr.toLocaleString()}`}
+          value={`$${stats.mrr.toLocaleString()}`}
           sub="this month"
           icon={<TrendingUp className="h-4 w-4" />}
         />

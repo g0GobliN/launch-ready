@@ -139,13 +139,13 @@ function AdminRevenue() {
         {[
           {
             label: "Current MRR",
-            value: `¥${mrr.toLocaleString()}`,
+            value: `$${mrr.toLocaleString()}`,
             sub: "Monthly recurring revenue",
             icon: <TrendingUp className="h-4 w-4" />,
           },
           {
             label: "ARR",
-            value: `¥${arr.toLocaleString()}`,
+            value: `$${arr.toLocaleString()}`,
             sub: "Annualised recurring revenue",
             icon: <Calendar className="h-4 w-4" />,
           },
@@ -204,7 +204,7 @@ function AdminRevenue() {
                   <span className="text-xs text-muted-foreground">{plan.users} users</span>
                 </div>
                 <div className="text-xl font-bold mb-1">
-                  ¥{plan.mrr.toLocaleString()}
+                  ${plan.mrr.toLocaleString()}
                   <span className="text-xs font-normal text-muted-foreground">/mo</span>
                 </div>
                 <div className="space-y-2 mt-3">
@@ -236,7 +236,7 @@ function AdminRevenue() {
                 <div className="mt-3 pt-3 border-t border-border flex justify-between text-xs text-muted-foreground">
                   <span>Per user</span>
                   <span className="font-medium text-foreground">
-                    ¥{plan.users > 0 ? Math.round(plan.mrr / plan.users).toLocaleString() : 0}
+                    ${plan.users > 0 ? Math.round(plan.mrr / plan.users).toLocaleString() : 0}
                   </span>
                 </div>
               </div>
@@ -284,11 +284,11 @@ function AdminRevenue() {
                 tick={TICK}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v) => `¥${v.toLocaleString()}`}
+                tickFormatter={(v) => `$${v.toLocaleString()}`}
               />
               <Tooltip
                 contentStyle={TOOLTIP_STYLE}
-                formatter={(v: number) => [`¥${v.toLocaleString()}`, "MRR"]}
+                formatter={(v: number) => [`$${v.toLocaleString()}`, "MRR"]}
               />
               <Area
                 type="monotone"
@@ -316,11 +316,11 @@ function AdminRevenue() {
                   tick={TICK}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(v) => `¥${v.toLocaleString()}`}
+                  tickFormatter={(v) => `$${v.toLocaleString()}`}
                 />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={(v: number) => [`¥${v.toLocaleString()}`, "MRR"]}
+                  formatter={(v: number) => [`$${v.toLocaleString()}`, "MRR"]}
                 />
                 <Bar dataKey="mrr" radius={[4, 4, 0, 0]}>
                   {planRevenue.map((e, i) => (
@@ -342,7 +342,7 @@ function AdminRevenue() {
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span>{p.users} users</span>
                     <span className="font-semibold text-foreground">
-                      ¥{p.mrr.toLocaleString()}/mo
+                      ${p.mrr.toLocaleString()}/mo
                     </span>
                   </div>
                 </div>
@@ -410,7 +410,7 @@ function AdminRevenue() {
             <span className="text-muted-foreground">
               New revenue:{" "}
               <span className="font-medium text-emerald-400">
-                +¥{yearTotals.totalNewMrr.toLocaleString()}
+                +$${yearTotals.totalNewMrr.toLocaleString()}
               </span>
             </span>
             <span className="text-muted-foreground">
@@ -420,7 +420,7 @@ function AdminRevenue() {
             <span className="text-muted-foreground">
               Peak MRR:{" "}
               <span className="font-medium text-foreground">
-                ¥{yearTotals.peakMrr.toLocaleString()}
+                ${yearTotals.peakMrr.toLocaleString()}
               </span>
             </span>
           </div>
@@ -443,7 +443,7 @@ function AdminRevenue() {
                 <tr key={row.isoMonth} className="hover:bg-muted/20 transition-colors">
                   <td className="px-5 py-3 font-medium text-foreground">{row.month}</td>
                   <td className="px-4 py-3 font-semibold text-foreground">
-                    ¥{row.totalMrr.toLocaleString()}
+                    ${row.totalMrr.toLocaleString()}
                   </td>
                   <td className="px-4 py-3">
                     <GrowthBadge value={row.momGrowth} />
@@ -451,7 +451,7 @@ function AdminRevenue() {
                   <td className="px-4 py-3 text-xs">
                     {row.newMrr > 0 ? (
                       <span className="text-emerald-400 font-medium">
-                        +¥{row.newMrr.toLocaleString()}
+                        +$${row.newMrr.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -468,7 +468,7 @@ function AdminRevenue() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
-                    ¥{(row.totalMrr * 12).toLocaleString()}
+                    ${(row.totalMrr * 12).toLocaleString()}
                   </td>
                 </tr>
               ))}

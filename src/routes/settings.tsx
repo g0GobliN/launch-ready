@@ -148,7 +148,7 @@ function SettingsPage() {
             <div className="mt-5 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-medium">Upgrade for more scans & repos</div>
-                <div className="text-xs text-muted-foreground mt-0.5">Starter from ¥980/month</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Starter from $9.80/month</div>
               </div>
               <Link
                 to="/pricing"
