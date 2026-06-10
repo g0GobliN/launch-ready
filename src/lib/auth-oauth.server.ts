@@ -75,9 +75,7 @@ export async function exchangeOAuthCode(code: string) {
     };
     // Only overwrite email if GitHub returned one and DB doesn't have one yet
     if (email && !existing?.email) upsertData.email = email;
-    await db
-      .from("user_credits")
-      .upsert(upsertData, { onConflict: "github_login" });
+    await db.from("user_credits").upsert(upsertData, { onConflict: "github_login" });
   }
 
   return { error: null };
