@@ -193,7 +193,7 @@ export async function sendCancellationEmail(to: string, name: string, planName: 
   const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">Subscription cancelled</h1>
        <p style="margin:0 0 12px;font-size:15px;color:#3f3f46;line-height:1.7">Hi <strong>${name}</strong>, your ${planName} subscription has been cancelled.</p>
        <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;line-height:1.7">You will keep full access until the end of your current billing period. After that, your account moves to the Free plan.</p>
-       <p style="margin:0;font-size:14px;color:#3f3f46;background:#f4f4f5;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;line-height:1.6">Changed your mind? Resubscribe any time from your account settings.</p>`;
+       <p style="margin:0;font-size:14px;color:#3f3f46;background:#f4f4f5;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;line-height:1.6">Changed your mind? Log in and resubscribe any time from the pricing page.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
     from: FROM,

@@ -47,7 +47,7 @@ LaunchReadyy closes that gap.
 
 |  | Free | Starter | Pro | Agency |
 |--|------|---------|-----|--------|
-| Price | $0 | $9 / mo | $19 / mo | $35 / mo |
+| Price | $0 | $9.80 / mo | $19.80 / mo | $49.80 / mo |
 | Repos | 1 | 3 | 10 | 50 |
 | Scans / month | 3 | 20 | 100 | 500 |
 | AI credits / month | — | 10 | 50 | 250 |

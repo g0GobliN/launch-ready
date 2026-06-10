@@ -24,7 +24,7 @@ export const PLANS: Record<PlanId, Plan> = {
   starter: {
     id: "starter",
     name: "Starter",
-    priceUsd: 7,
+    priceUsd: 9.8,
     repos: 3,
     scansPerMonth: 20,
     aiCreditsPerMonth: 10,
@@ -40,7 +40,7 @@ export const PLANS: Record<PlanId, Plan> = {
   pro: {
     id: "pro",
     name: "Pro",
-    priceUsd: 14,
+    priceUsd: 19.8,
     repos: 10,
     scansPerMonth: 100,
     aiCreditsPerMonth: 50,
@@ -56,7 +56,7 @@ export const PLANS: Record<PlanId, Plan> = {
   agency: {
     id: "agency",
     name: "Agency",
-    priceUsd: 35,
+    priceUsd: 49.8,
     repos: 50,
     scansPerMonth: 500,
     aiCreditsPerMonth: 250,
