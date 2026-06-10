@@ -98,7 +98,6 @@ export const activatePlanFn = createServerFn({ method: "POST" })
       { onConflict: "github_login" },
     );
 
-
     return { planId };
   });
 
