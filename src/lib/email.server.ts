@@ -29,11 +29,6 @@ export function verifyUnsubscribeToken(login: string, token: string): boolean {
   }
 }
 
-function unsubscribeUrl(login: string): string {
-  const token = createUnsubscribeToken(login);
-  return `${process.env.APP_URL}/api/unsubscribe?login=${encodeURIComponent(login)}&token=${token}`;
-}
-
 async function isUnsubscribed(login: string): Promise<boolean> {
   try {
     const { getServiceRoleClient } = await import("./supabase.server");
@@ -51,8 +46,7 @@ async function isUnsubscribed(login: string): Promise<boolean> {
 
 // ─── HTML template ────────────────────────────────────────────────────────────
 
-function base(body: string, login: string) {
-  const url = unsubscribeUrl(login);
+function base(body: string) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,8 +76,8 @@ function base(body: string, login: string) {
             <td style="padding:20px 36px;border-top:1px solid #e4e4e7">
               <p style="margin:0;font-size:12px;color:#a1a1aa;line-height:1.6">
                 LaunchReadyy &middot; Built for indie hackers and vibe coders<br>
-                Questions? <a href="mailto:${CONTACT_EMAIL}" style="color:#16a34a;text-decoration:none">${CONTACT_EMAIL}</a><br>
-                <a href="${url}" style="color:#a1a1aa;text-decoration:underline">Unsubscribe</a>
+                Questions? ${CONTACT_EMAIL}<br>
+                To unsubscribe, reply with subject: Unsubscribe
               </p>
             </td>
           </tr>
@@ -113,22 +107,11 @@ function toPlainText(html: string): string {
     .trim();
 }
 
-function emailHeaders(login: string) {
-  const url = unsubscribeUrl(login);
+function emailHeaders() {
   return {
-    "List-Unsubscribe": `<${url}>`,
+    "List-Unsubscribe": `<mailto:${CONTACT_EMAIL}?subject=Unsubscribe>`,
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
   };
-}
-
-function btn(href: string, label: string) {
-  return `<table cellpadding="0" cellspacing="0" border="0" style="margin-top:24px">
-    <tr>
-      <td style="background:#16a34a;border-radius:6px">
-        <a href="${href}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-weight:bold;font-size:14px;text-decoration:none">${label}</a>
-      </td>
-    </tr>
-  </table>`;
 }
 
 // ─── Send functions ───────────────────────────────────────────────────────────
@@ -139,16 +122,15 @@ export async function sendWelcomeEmail(to: string, name: string) {
   if (await isUnsubscribed(name)) return;
   const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">Welcome, ${name}</h1>
        <p style="margin:0 0 12px;font-size:15px;color:#3f3f46;line-height:1.7">Your GitHub account is connected. You are on the Free plan — 1 repository and 3 scans per month.</p>
-       <p style="margin:0;font-size:15px;color:#3f3f46;line-height:1.7">Run your first scan and get a production-readiness score in seconds.</p>
-       ${btn(`${process.env.APP_URL}/dashboard`, "Go to dashboard")}`;
-  const html = base(bodyHtml, name);
+       <p style="margin:0;font-size:15px;color:#3f3f46;line-height:1.7">Run your first scan and get a production-readiness score in seconds. Log in to get started.</p>`;
+  const html = base(bodyHtml);
   await resend.emails.send({
     from: FROM,
     to,
     subject: "Welcome to LaunchReadyy",
     html,
     text: toPlainText(html),
-    headers: emailHeaders(name),
+    headers: emailHeaders(),
   });
 }
 
@@ -184,16 +166,15 @@ export async function sendPurchaseEmail(
            </td>
          </tr>
        </table>
-       ${btn(`${process.env.APP_URL}/dashboard`, "Go to dashboard")}
        <p style="margin:20px 0 0;font-size:13px;color:#71717a;line-height:1.6">-- Gurung, solo developer behind LaunchReadyy. Thank you for your support, it genuinely means a lot.</p>`;
-  const html = base(bodyHtml, name);
+  const html = base(bodyHtml);
   await resend.emails.send({
     from: FROM,
     to,
     subject: `Your LaunchReadyy ${planName} plan is now active`,
     html,
     text: toPlainText(html),
-    headers: emailHeaders(name),
+    headers: emailHeaders(),
   });
 }
 
@@ -204,16 +185,15 @@ export async function sendCancellationEmail(to: string, name: string, planName: 
   const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">Subscription cancelled</h1>
        <p style="margin:0 0 12px;font-size:15px;color:#3f3f46;line-height:1.7">Hi <strong>${name}</strong>, your ${planName} subscription has been cancelled.</p>
        <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;line-height:1.7">You will keep full access until the end of your current billing period. After that, your account moves to the Free plan.</p>
-       <p style="margin:0;font-size:14px;color:#3f3f46;background:#f4f4f5;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;line-height:1.6">Changed your mind? Resubscribe any time and pick up right where you left off.</p>
-       ${btn(`${process.env.APP_URL}/pricing`, "View plans")}`;
-  const html = base(bodyHtml, name);
+       <p style="margin:0;font-size:14px;color:#3f3f46;background:#f4f4f5;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;line-height:1.6">Changed your mind? Resubscribe any time from your account settings.</p>`;
+  const html = base(bodyHtml);
   await resend.emails.send({
     from: FROM,
     to,
     subject: "Your LaunchReadyy subscription has been cancelled",
     html,
     text: toPlainText(html),
-    headers: emailHeaders(name),
+    headers: emailHeaders(),
   });
 }
 
@@ -224,16 +204,15 @@ export async function sendPaymentFailedEmail(to: string, name: string) {
   const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">Payment failed</h1>
        <p style="margin:0 0 12px;font-size:15px;color:#3f3f46;line-height:1.7">Hi <strong>${name}</strong>, we were unable to process your last payment.</p>
        <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;line-height:1.7">Please update your payment method to avoid losing access to your plan. Your account will be downgraded to Free if payment continues to fail.</p>
-       <p style="margin:0;font-size:14px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">Update your payment method as soon as possible to keep your plan active.</p>
-       ${btn(`${process.env.APP_URL}/settings`, "Update payment method")}`;
-  const html = base(bodyHtml, name);
+       <p style="margin:0;font-size:14px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">Log in to your account settings to update your payment method.</p>`;
+  const html = base(bodyHtml);
   await resend.emails.send({
     from: FROM,
     to,
     subject: "Action required: payment failed",
     html,
     text: toPlainText(html),
-    headers: emailHeaders(name),
+    headers: emailHeaders(),
   });
 }
 
@@ -248,16 +227,15 @@ export async function sendCreditsLowEmail(
   if (await isUnsubscribed(name)) return;
   const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">Running low on AI credits</h1>
        <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;line-height:1.7">Hi <strong>${name}</strong>, you have <strong>${creditsRemaining} AI credit${creditsRemaining === 1 ? "" : "s"}</strong> left on your ${planName} plan this month.</p>
-       <p style="margin:0;font-size:14px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">AI credits are used for AI-generated fixes and architecture analysis. Upgrade to get more credits instantly.</p>
-       ${btn(`${process.env.APP_URL}/pricing`, "Upgrade plan")}`;
-  const html = base(bodyHtml, name);
+       <p style="margin:0;font-size:14px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">AI credits are used for AI-generated fixes and architecture analysis. Log in to upgrade your plan and get more credits instantly.</p>`;
+  const html = base(bodyHtml);
   await resend.emails.send({
     from: FROM,
     to,
     subject: "You are running low on AI credits",
     html,
     text: toPlainText(html),
-    headers: emailHeaders(name),
+    headers: emailHeaders(),
   });
 }
 
@@ -273,15 +251,14 @@ export async function sendLimitReachedEmail(
   const isScans = limitType === "scans";
   const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">${isScans ? "Scan" : "Repository"} limit reached</h1>
        <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;line-height:1.7">Hi <strong>${name}</strong>, you have used all your ${isScans ? "scans" : "repository slots"} for this month on the ${planName} plan.</p>
-       <p style="margin:0;font-size:14px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">${isScans ? "Upgrade to run more scans and keep your repos production-ready." : "Upgrade to connect more repositories and scan your full stack."}</p>
-       ${btn(`${process.env.APP_URL}/pricing`, "Upgrade plan")}`;
-  const html = base(bodyHtml, name);
+       <p style="margin:0;font-size:14px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">${isScans ? "Log in and upgrade to run more scans and keep your repos production-ready." : "Log in and upgrade to connect more repositories and scan your full stack."}</p>`;
+  const html = base(bodyHtml);
   await resend.emails.send({
     from: FROM,
     to,
     subject: `You have hit your ${isScans ? "scan" : "repository"} limit`,
     html,
     text: toPlainText(html),
-    headers: emailHeaders(name),
+    headers: emailHeaders(),
   });
 }
