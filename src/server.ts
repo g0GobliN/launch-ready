@@ -383,6 +383,7 @@ async function handleUnsubscribe(request: Request): Promise<Response> {
   const db = getServiceRoleClient();
   await db.from("user_credits").update({ email_unsubscribed: true }).eq("github_login", login);
 
+  const logoUrl = `${(process.env.APP_URL ?? "https://launchreadyy.xyz").replace(/\/$/, "")}/logo/logoo.png`;
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -397,7 +398,7 @@ async function handleUnsubscribe(request: Request): Promise<Response> {
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background:#ffffff;border:1px solid #e4e4e7;border-radius:8px">
           <tr>
             <td style="padding:32px 36px 24px">
-              <span style="background:#16a34a;border-radius:6px;padding:5px 12px;color:#ffffff;font-weight:bold;font-size:14px">LaunchReadyy</span>
+              <img src="${logoUrl}" alt="LaunchReadyy" width="36" height="36" style="display:block;border:0;border-radius:6px" />
             </td>
           </tr>
           <tr>

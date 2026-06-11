@@ -8,9 +8,15 @@ function getResend() {
 }
 
 const FROM = process.env.RESEND_FROM_EMAIL ?? "hello@launchreadyy.xyz";
+const FROM_HEADER = FROM.includes("<") ? FROM : `LaunchReadyy <${FROM}>`;
 const CONTACT_EMAIL = "launchreadyy@gmail.com";
 const UNSUBSCRIBE_BASE_URL =
   process.env.UNSUBSCRIBE_BASE_URL ?? "https://launch-ready.grgvishal-gurung17.workers.dev";
+
+function emailLogoUrl(): string {
+  const appUrl = (process.env.APP_URL ?? "https://launchreadyy.xyz").replace(/\/$/, "");
+  return `${appUrl}/logo/logoo.png`;
+}
 
 // ─── Unsubscribe tokens ───────────────────────────────────────────────────────
 
@@ -70,7 +76,7 @@ function base(body: string, login: string) {
 
           <tr>
             <td style="padding:32px 36px 24px">
-              <span style="background:#16a34a;border-radius:6px;padding:5px 12px;color:#ffffff;font-weight:bold;font-size:14px">LaunchReadyy</span>
+              <img src="${emailLogoUrl()}" alt="LaunchReadyy" width="36" height="36" style="display:block;border:0;border-radius:6px" />
             </td>
           </tr>
 
@@ -133,7 +139,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
        <p style="margin:0;font-size:15px;color:#3f3f46;line-height:1.7">Run your first scan and get a production-readiness score in seconds. Log in to get started.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
-    from: FROM,
+    from: FROM_HEADER,
     to,
     subject: "Welcome to LaunchReadyy",
     html,
@@ -177,7 +183,7 @@ export async function sendPurchaseEmail(
        <p style="margin:20px 0 0;font-size:13px;color:#71717a;line-height:1.6">-- Gurung, solo developer behind LaunchReadyy. Thank you for your support, it genuinely means a lot.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
-    from: FROM,
+    from: FROM_HEADER,
     to,
     subject: `Your LaunchReadyy ${planName} plan is now active`,
     html,
@@ -195,7 +201,7 @@ export async function sendResubscribeEmail(to: string, name: string, planName: s
        <p style="margin:0;font-size:15px;color:#3f3f46;line-height:1.7">Everything is back to normal — your plan, credits, and limits are all active. Good to have you back.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
-    from: FROM,
+    from: FROM_HEADER,
     to,
     subject: "Your LaunchReadyy subscription is back",
     html,
@@ -214,7 +220,7 @@ export async function sendCancellationEmail(to: string, name: string, planName: 
        <p style="margin:0;font-size:14px;color:#3f3f46;background:#f4f4f5;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;line-height:1.6">Changed your mind? Log in and resubscribe any time from the pricing page.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
-    from: FROM,
+    from: FROM_HEADER,
     to,
     subject: "Your LaunchReadyy subscription has been cancelled",
     html,
@@ -233,7 +239,7 @@ export async function sendPaymentFailedEmail(to: string, name: string) {
        <p style="margin:0;font-size:14px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">Log in to your account settings to update your payment method.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
-    from: FROM,
+    from: FROM_HEADER,
     to,
     subject: "Action required: payment failed",
     html,
@@ -256,7 +262,7 @@ export async function sendCreditsLowEmail(
        <p style="margin:0;font-size:14px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">AI credits are used for AI-generated fixes and architecture analysis. Log in to upgrade your plan and get more credits instantly.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
-    from: FROM,
+    from: FROM_HEADER,
     to,
     subject: "You are running low on AI credits",
     html,
@@ -280,7 +286,7 @@ export async function sendLimitReachedEmail(
        <p style="margin:0;font-size:14px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;line-height:1.6">${isScans ? "Log in and upgrade to run more scans and keep your repos production-ready." : "Log in and upgrade to connect more repositories and scan your full stack."}</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({
-    from: FROM,
+    from: FROM_HEADER,
     to,
     subject: `You have hit your ${isScans ? "scan" : "repository"} limit`,
     html,
