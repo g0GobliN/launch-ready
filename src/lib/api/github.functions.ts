@@ -119,6 +119,7 @@ export const triggerScan = createServerFn({ method: "POST" })
       id: scanId,
       repo_id: data.repoId,
       score: result.score,
+      warnings: result.warnings.length > 0 ? JSON.stringify(result.warnings) : null,
     });
     if (scanErr) throw new Error(scanErr.message);
 

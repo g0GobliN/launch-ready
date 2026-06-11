@@ -1,5 +1,15 @@
 const GITHUB_API = "https://api.github.com";
 
+export class GitHubApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "GitHubApiError";
+  }
+}
+
 export interface GitHubUser {
   login: string;
   avatar_url: string;
@@ -62,7 +72,7 @@ export async function fetchGitHubRepos(token: string): Promise<GitHubRepo[]> {
     );
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`GitHub repos API ${res.status}: ${body}`);
+      throw new GitHubApiError(res.status, `GitHub repos API ${res.status}: ${body}`);
     }
     const batch = (await res.json()) as GitHubRepo[];
     repos.push(...batch);

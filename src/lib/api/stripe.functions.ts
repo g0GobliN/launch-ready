@@ -1,12 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { PLANS, type PlanId } from "../plans";
+import { STRIPE_PRICE_IDS, buildPlanUpsertFields } from "../stripe-billing.server";
 
-const PRICE_IDS: Record<"starter" | "pro" | "agency", string> = {
-  starter: process.env.STRIPE_PRICE_STARTER!,
-  pro: process.env.STRIPE_PRICE_PRO!,
-  agency: process.env.STRIPE_PRICE_AGENCY!,
-};
+const PRICE_IDS = STRIPE_PRICE_IDS;
 
 export const createCheckoutSessionFn = createServerFn({ method: "POST" })
   .inputValidator(z.object({ planId: z.enum(["starter", "pro", "agency"]) }))
@@ -72,26 +69,22 @@ export const activatePlanFn = createServerFn({ method: "POST" })
     const planId = session.metadata?.plan_id as PlanId;
     if (!githubLogin || !planId) throw new Error("Missing metadata");
 
-    const plan = PLANS[planId];
     const db = getServiceRoleClient();
-    const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const subscriptionId =
       typeof session.subscription === "string"
         ? session.subscription
         : (session.subscription?.id ?? null);
+    const sub =
+      subscriptionId && typeof session.subscription !== "string"
+        ? session.subscription
+        : subscriptionId
+          ? await stripe.subscriptions.retrieve(subscriptionId)
+          : null;
 
     await db.from("user_credits").upsert(
       {
         github_login: githubLogin,
-        plan: planId,
-        monthly_scan_limit: plan.scansPerMonth,
-        monthly_scan_used: 0,
-        balance: plan.aiCreditsPerMonth,
-        ai_credits_total: plan.aiCreditsPerMonth,
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        updated_at: now.toISOString(),
+        ...buildPlanUpsertFields(planId, sub ?? undefined, { resetUsage: true }),
         stripe_customer_id: (session.customer as string) ?? null,
         stripe_subscription_id: subscriptionId,
       },

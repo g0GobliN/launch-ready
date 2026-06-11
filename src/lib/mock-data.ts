@@ -46,6 +46,7 @@ export interface Scan {
   score: number;
   createdAt: string;
   issues: Issue[];
+  warnings: string[];
 }
 
 export const MOCK_REPOS: Repo[] = [
@@ -174,7 +175,10 @@ export const MOCK_SCANS: Record<string, Scan> = Object.fromEntries(
     // score: 100 minus weighted issues
     const weights: Record<Severity, number> = { critical: 12, high: 7, medium: 4, low: 2 };
     const score = Math.max(20, 100 - issues.reduce((s, i) => s + weights[i.severity], 0));
-    return [r.id, { id: `s-${r.id}`, repoId: r.id, score, createdAt: "just now", issues }];
+    return [
+      r.id,
+      { id: `s-${r.id}`, repoId: r.id, score, createdAt: "just now", issues, warnings: [] },
+    ];
   }),
 );
 
@@ -546,6 +550,34 @@ export const FIX_DETAILS: Record<string, FixPreview & { label: string }> = {
           add(``, 41),
           add(`Set the environment variables from \`.env.example\` on your host,`, 42),
           add(`then run the build and start commands above.`, 43),
+        ],
+      },
+    ],
+  },
+  "error-boundary": {
+    label: "Add error boundary (error.tsx)",
+    files_added: ["app/error.tsx"],
+    files_changed: [],
+    deps: [],
+    diffs: [
+      {
+        path: "app/error.tsx",
+        status: "added",
+        lines: [
+          hunk("@@ -0,0 +1,24 @@"),
+          add(`'use client'`, 1),
+          add(``, 2),
+          add(`import { useEffect } from "react"`, 3),
+          add(``, 4),
+          add(`export default function Error({ error, reset }) {`, 5),
+          add(`  useEffect(() => { console.error(error) }, [error])`, 6),
+          add(`  return (`, 7),
+          add(`    <div>`, 8),
+          add(`      <h2>Something went wrong</h2>`, 9),
+          add(`      <button type="button" onClick={() => reset()}>Try again</button>`, 10),
+          add(`    </div>`, 11),
+          add(`  )`, 12),
+          add(`}`, 13),
         ],
       },
     ],

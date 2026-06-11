@@ -37,7 +37,7 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-  const { user, githubRepos, recentScans, recentJobs, planData, creditHistory } =
+  const { user, githubRepos, recentScans, recentJobs, planData, creditHistory, tokenExpired } =
     Route.useLoaderData();
 
   const { error } = Route.useSearch();
@@ -50,6 +50,7 @@ function Dashboard() {
       recentJobs={recentJobs ?? []}
       planData={planData}
       creditHistory={creditHistory ?? []}
+      tokenExpired={tokenExpired ?? false}
     />
   );
 }
@@ -127,6 +128,7 @@ function RepoList({
   recentJobs,
   planData,
   creditHistory,
+  tokenExpired,
 }: {
   user: { login: string; avatarUrl: string };
   repos: GitHubRepo[];
@@ -134,6 +136,7 @@ function RepoList({
   recentJobs: Array<FixRequest & { repoFullName: string }>;
   planData: UserPlanData | null;
   creditHistory: CreditTransaction[];
+  tokenExpired: boolean;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -203,6 +206,22 @@ function RepoList({
         />
       )}
       <SiteHeader user={user} />
+
+      {tokenExpired && (
+        <div className="mx-auto max-w-7xl px-6 pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm">
+            <span className="text-muted-foreground">
+              Your GitHub connection expired. Reconnect to load repositories and run scans.
+            </span>
+            <a
+              href="/api/auth/github"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+            >
+              Reconnect GitHub
+            </a>
+          </div>
+        </div>
+      )}
 
       {grantNotif && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4">

@@ -445,6 +445,33 @@ STRIPE_SECRET_KEY=
 SENTRY_DSN=
 `;
 
+const ERROR_BOUNDARY_TSX = `'use client'
+
+import { useEffect } from "react"
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  useEffect(() => {
+    console.error(error)
+  }, [error])
+
+  return (
+    <div style={{ padding: "2rem", textAlign: "center" }}>
+      <h2>Something went wrong</h2>
+      <p>Please try again or contact support if the problem persists.</p>
+      <button type="button" onClick={() => reset()}>
+        Try again
+      </button>
+    </div>
+  )
+}
+`;
+
 const SENTRY_INIT = `import * as Sentry from "@sentry/react";
 
 Sentry.init({
@@ -595,6 +622,7 @@ const FIX_LABEL: Record<string, string> = {
   dockerfile: "Dockerfile",
   "env-example": ".env.example",
   readme: "README setup",
+  "error-boundary": "error boundary",
   monitoring: "Sentry monitoring",
   helmet: "Helmet security headers",
   "rate-limit": "rate limiting",
@@ -687,6 +715,10 @@ export async function collectFixFiles(
         // Readme content built below after detecting package manager
         break;
 
+      case "error-boundary":
+        if (framework === "Next.js") add("app/error.tsx", ERROR_BOUNDARY_TSX);
+        break;
+
       case "monitoring":
         add("src/lib/sentry.ts", SENTRY_INIT);
         Object.assign(pkgMods.deps, { "@sentry/react": "^8.0.0" });
@@ -744,8 +776,11 @@ export async function collectFixFiles(
     const pm = await detectPackageManager(token, fullName);
     const cmds = pmCommands(pm);
     if (fixIds.includes("readme")) {
+      const envStep = fixIds.includes("env-example")
+        ? `**2. Configure environment**\n\n\`\`\`bash\ncp .env.example .env\n\`\`\`\n\nFill in \`.env\` with required variables.\n\n**3. Run in development**`
+        : `**2. Run in development**`;
       readmeSections.unshift(
-        `## Getting started\n\n**1. Clone and install**\n\n\`\`\`bash\ngit clone https://github.com/<you>/${repoName}.git\ncd ${repoName}\n${cmds.install}\n\`\`\`\n\n**2. Configure environment**\n\n\`\`\`bash\ncp .env.example .env\n\`\`\`\n\nFill in \`.env\` with required variables.\n\n**3. Run in development**\n\n\`\`\`bash\n${cmds.dev}\n\`\`\``,
+        `## Getting started\n\n**1. Clone and install**\n\n\`\`\`bash\ngit clone https://github.com/<you>/${repoName}.git\ncd ${repoName}\n${cmds.install}\n\`\`\`\n\n${envStep}\n\n\`\`\`bash\n${cmds.dev}\n\`\`\``,
       );
     }
   }

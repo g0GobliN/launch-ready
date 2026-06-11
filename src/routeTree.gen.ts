@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkflowRouteImport } from './routes/workflow'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -37,9 +39,19 @@ const WorkflowRoute = WorkflowRouteImport.update({
   path: '/workflow',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -149,7 +161,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/demo': typeof DemoRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/promotions': typeof AdminPromotionsRoute
@@ -172,7 +186,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/demo': typeof DemoRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/promotions': typeof AdminPromotionsRoute
@@ -196,7 +212,9 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/demo': typeof DemoRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/promotions': typeof AdminPromotionsRoute
@@ -222,7 +240,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/demo'
     | '/pricing'
+    | '/privacy'
     | '/settings'
+    | '/terms'
     | '/workflow'
     | '/admin/jobs'
     | '/admin/promotions'
@@ -245,7 +265,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/demo'
     | '/pricing'
+    | '/privacy'
     | '/settings'
+    | '/terms'
     | '/workflow'
     | '/admin/jobs'
     | '/admin/promotions'
@@ -268,7 +290,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/demo'
     | '/pricing'
+    | '/privacy'
     | '/settings'
+    | '/terms'
     | '/workflow'
     | '/admin/jobs'
     | '/admin/promotions'
@@ -293,7 +317,9 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DemoRoute: typeof DemoRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
+  TermsRoute: typeof TermsRoute
   WorkflowRoute: typeof WorkflowRoute
   PrRepoIdRoute: typeof PrRepoIdRoute
   RepoRepoIdRoute: typeof RepoRepoIdRouteWithChildren
@@ -313,11 +339,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkflowRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -503,7 +543,9 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DemoRoute: DemoRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
+  TermsRoute: TermsRoute,
   WorkflowRoute: WorkflowRoute,
   PrRepoIdRoute: PrRepoIdRoute,
   RepoRepoIdRoute: RepoRepoIdRouteWithChildren,

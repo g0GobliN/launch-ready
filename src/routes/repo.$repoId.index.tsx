@@ -2,7 +2,8 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { getRepoFn, getScanFn } from "@/lib/api/db.functions";
 import { ScoreRing, SeverityBadge } from "@/components/ui-bits";
-import { ArrowRight, BrainCircuit, Clock, Github } from "lucide-react";
+import { ArrowRight, BrainCircuit, Clock, Github, Info, AlertTriangle } from "lucide-react";
+import { SEVERITY_WEIGHT } from "@/lib/scanner-rules";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId/")({
@@ -88,8 +89,21 @@ function RepoPage() {
             <div className="flex flex-col items-center">
               <ScoreRing score={scan.score} />
               <div className="mt-4 text-center">
-                <div className="font-display text-base font-semibold">Production Readiness</div>
+                <div className="font-display text-base font-semibold">Foundation score</div>
                 <div className="mt-1 text-xs text-muted-foreground">Scanned {scan.createdAt}</div>
+              </div>
+            </div>
+            <div className="mt-4 rounded-lg border border-border bg-surface p-3 text-xs text-muted-foreground leading-relaxed">
+              <div className="flex items-start gap-1.5">
+                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
+                <div>
+                  Starts at 100, minus{" "}
+                  {Object.entries(SEVERITY_WEIGHT)
+                    .map(([k, v]) => `${k} −${v}`)
+                    .join(", ")}
+                  . Measures production <strong className="text-foreground">foundation</strong>{" "}
+                  checklist coverage — not a security audit.
+                </div>
               </div>
             </div>
             <div className="mt-6 space-y-2 border-t border-border pt-4 text-sm">
@@ -116,6 +130,26 @@ function RepoPage() {
           </div>
 
           <div>
+            {(scan.warnings?.length ?? 0) > 0 && (
+              <div className="mb-4 space-y-2">
+                {(scan.warnings ?? []).map((w) => (
+                  <div
+                    key={w}
+                    className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                    <span className="text-muted-foreground">{w}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {repo.framework === "unknown" && (
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted-foreground">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                Full framework checks apply to Next.js, Vite, React, and Express. Shared checks
+                still run for this repo.
+              </div>
+            )}
             <div className="flex items-end justify-between">
               <div>
                 <h1 className="font-display text-2xl font-semibold">Missing items</h1>

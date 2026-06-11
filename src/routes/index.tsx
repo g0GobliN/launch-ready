@@ -59,6 +59,7 @@ function Landing() {
       <Problem />
       <HowItWorks />
       <Features />
+      <WhatWeCheck />
       <Pricing />
       <FAQ />
       <CTA />
@@ -79,12 +80,12 @@ function Hero() {
             For Cursor, Bolt & Copilot builders
           </div>
           <h1 className="text-balance font-display text-5xl font-semibold leading-[1.05] sm:text-6xl md:text-7xl">
-            Your AI built the app. <span className="text-gradient">LaunchReadyy</span> makes it
-            production-ready.
+            Your AI built the app. <span className="text-gradient">LaunchReadyy</span> adds the
+            production foundation.
           </h1>
           <p className="mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
-            Connect your GitHub repo, find missing engineering setup, and create production-ready
-            pull requests in one click.
+            Scan your repo for missing CI, tests, env docs, and deployment basics — then open a PR
+            with the boring setup your project still needs.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -200,7 +201,7 @@ function HowItWorks() {
     {
       i: <Activity className="h-5 w-5" />,
       t: "Scan repo",
-      d: "We analyze your stack and produce a 0–100 readiness score.",
+      d: "We check your real files and produce a 0–100 foundation score.",
     },
     {
       i: <CheckCircle2 className="h-5 w-5" />,
@@ -274,6 +275,68 @@ function Features() {
               <p className="mt-1 text-sm text-muted-foreground">{f.d}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WhatWeCheck() {
+  const checks = [
+    "GitHub Actions CI workflow",
+    ".env.example and README setup section",
+    "Vitest + Playwright test scaffolding",
+    "ESLint, Prettier, Dockerfile",
+    "Sentry monitoring stub (frontend stacks)",
+    "Express security: Helmet, rate limits, logging",
+    "Next.js error boundary (error.tsx)",
+  ];
+  const notChecks = [
+    "Security audit of your business logic",
+    "Performance, scale, or compliance review",
+    "Custom documentation for your entire codebase",
+    "Guarantee your app is safe to launch tomorrow",
+  ];
+  return (
+    <section id="coverage" className="border-b border-border/50 py-24">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mb-12 text-center">
+          <p className="text-xs uppercase tracking-widest text-primary">Honest scope</p>
+          <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
+            What we check — and what we don&apos;t
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
+            LaunchReadyy automates the first-mile production setup indie builders skip. It is a
+            checklist scanner, not a full audit.
+          </p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+            <h3 className="font-display font-semibold text-primary">We check</h3>
+            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              {checks.map((c) => (
+                <li key={c} className="flex items-start gap-2">
+                  <Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                  {c}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Full framework rules for Next.js, Vite, React, and Express. Other JS repos get shared
+              checks only.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h3 className="font-display font-semibold">We don&apos;t</h3>
+            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              {notChecks.map((c) => (
+                <li key={c} className="flex items-start gap-2">
+                  <span className="text-muted-foreground/60 mt-0.5">—</span>
+                  {c}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -429,7 +492,11 @@ function FAQ() {
     },
     {
       q: "Does it work with Next.js, Vite, and Express?",
-      a: "Yes. We detect the framework and tailor fixes to your stack. Support for Next.js, React Vite, and Express is fully production-tested.",
+      a: "Yes — those stacks get full framework-specific checks. Other JavaScript repos still get shared checks (CI, README, .env.example, Dockerfile, etc.).",
+    },
+    {
+      q: "Does the score mean my app is production ready?",
+      a: "It measures production foundation checklist coverage (CI, tests, docs, deployment basics) — starting at 100 and subtracting by issue severity. It is not a security or launch guarantee.",
     },
     {
       q: "Can I use it on private repos?",
@@ -471,10 +538,10 @@ function CTA() {
       <div className="absolute inset-0 grid-bg opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]" />
       <div className="relative mx-auto max-w-4xl rounded-2xl border border-primary/15 bg-card p-10 text-center">
         <h2 className="font-display text-3xl font-semibold sm:text-4xl">
-          Ship like a senior engineer.
+          Ship the boring setup in one PR.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-          Stop manually setting up CI, tests, and Docker. Let LaunchReadyy open the PR.
+          CI, tests, env docs, Docker — the foundation senior engineers add on day one.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
@@ -511,7 +578,14 @@ function Footer() {
     <footer className="border-t border-border/60 py-10">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
         <div>© {new Date().getFullYear()} LaunchReadyy</div>
-        <div>Built for vibe coders. Made production-grade.</div>
+        <div className="flex gap-4">
+          <Link to="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link to="/terms" className="hover:text-foreground">
+            Terms
+          </Link>
+        </div>
       </div>
     </footer>
   );

@@ -40,12 +40,14 @@ export type Database = {
           repo_id: string;
           score: number;
           created_at: string;
+          warnings: string | null;
         };
         Insert: {
           id: string;
           repo_id: string;
           score: number;
           created_at?: string;
+          warnings?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["scans"]["Insert"]>;
         Relationships: [];

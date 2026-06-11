@@ -24,8 +24,11 @@ create table if not exists scans (
   id         text primary key,
   repo_id    text not null references repos(id) on delete cascade,
   score      integer not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  warnings   text
 );
+
+alter table scans add column if not exists warnings text;
 
 create table if not exists issues (
   id         text primary key,
@@ -145,3 +148,33 @@ create table if not exists fix_cache (
 
 alter table fix_cache enable row level security;
 create policy "public read fix_cache" on fix_cache for select using (true);
+
+-- ─── Billing & plans (user_credits) ───────────────────────────────────────────
+alter table user_credits add column if not exists plan text not null default 'free';
+alter table user_credits add column if not exists monthly_scan_limit integer not null default 3;
+alter table user_credits add column if not exists monthly_scan_used integer not null default 0;
+alter table user_credits add column if not exists ai_credits_total integer not null default 0;
+alter table user_credits add column if not exists current_period_start timestamptz not null default now();
+alter table user_credits add column if not exists current_period_end timestamptz not null default (now() + interval '1 month');
+alter table user_credits add column if not exists created_at timestamptz not null default now();
+alter table user_credits add column if not exists stripe_customer_id text;
+alter table user_credits add column if not exists stripe_subscription_id text;
+alter table user_credits add column if not exists is_admin boolean not null default false;
+
+-- ─── credit_transactions extras ───────────────────────────────────────────────
+alter table credit_transactions add column if not exists type text not null default 'usage';
+
+-- ─── promotions (admin) ───────────────────────────────────────────────────────
+create table if not exists promotions (
+  id            uuid primary key default gen_random_uuid(),
+  type          text not null,
+  plan          text not null,
+  amount        integer,
+  note          text,
+  affected_users integer not null,
+  run_by        text not null,
+  created_at    timestamptz default now()
+);
+
+alter table promotions enable row level security;
+create policy "public read promotions" on promotions for select using (true);

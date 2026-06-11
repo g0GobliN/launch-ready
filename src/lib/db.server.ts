@@ -76,12 +76,22 @@ export async function getScan(repoId: string): Promise<Scan | null> {
     fixId: i.fix_id,
   }));
 
+  let warnings: string[] = [];
+  if (scan.warnings) {
+    try {
+      warnings = JSON.parse(scan.warnings) as string[];
+    } catch {
+      warnings = [];
+    }
+  }
+
   return {
     id: scan.id,
     repoId: scan.repo_id,
     score: scan.score,
     createdAt: formatDistanceToNow(new Date(scan.created_at), { addSuffix: true }),
     issues,
+    warnings,
   };
 }
 

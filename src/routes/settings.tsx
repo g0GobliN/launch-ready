@@ -2,6 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { loadDashboardFn } from "@/lib/api/github.functions";
 import { createPortalSessionFn } from "@/lib/api/stripe.functions";
+import { setEmailNotificationsFn } from "@/lib/api/credits.functions";
 import { PLANS } from "@/lib/plans";
 import {
   GithubIcon,
@@ -16,6 +17,7 @@ import {
   CheckCircle2,
   ArrowRight,
   AlertCircle,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -39,7 +41,9 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { user, planData } = Route.useLoaderData();
+  const { user, planData, emailNotificationsEnabled } = Route.useLoaderData();
+  const [emailEnabled, setEmailEnabled] = useState(emailNotificationsEnabled);
+  const [emailSaving, setEmailSaving] = useState(false);
 
   const currentPlan = planData?.plan ?? "free";
   const planDef = PLANS[currentPlan];
@@ -108,6 +112,43 @@ function SettingsPage() {
             >
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </a>
+          </div>
+        </section>
+
+        {/* Email notifications */}
+        <section className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Mail className="h-4 w-4 text-primary" />
+            <h2 className="font-display font-semibold">Email notifications</h2>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-medium">Product & billing emails</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Welcome, purchase, limits, and subscription updates
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={emailEnabled}
+              disabled={emailSaving}
+              onClick={async () => {
+                setEmailSaving(true);
+                try {
+                  const next = !emailEnabled;
+                  await setEmailNotificationsFn({ data: { enabled: next } });
+                  setEmailEnabled(next);
+                } finally {
+                  setEmailSaving(false);
+                }
+              }}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${emailEnabled ? "bg-primary" : "bg-muted"} ${emailSaving ? "opacity-60" : ""}`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition ${emailEnabled ? "translate-x-5" : ""}`}
+              />
+            </button>
           </div>
         </section>
 

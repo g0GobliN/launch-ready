@@ -22,7 +22,7 @@ But there are no tests. No CI. No Dockerfile. No error handling. No rate limitin
 
 - **Production-readiness score** — instantly see what's missing and how bad it is
 - **One-click PRs** — pick issues, LaunchReadyy opens a real pull request with working code
-- **AI-generated tests** — Vitest unit tests, Playwright E2E flows, and API test suites written for *your* codebase
+- **AI-generated tests** — Vitest unit tests, Playwright E2E flows, and API test suites written for _your_ codebase
 - **Architecture analysis** — understand how your app fits together before it falls apart
 - **Framework-aware** — Next.js, Vite/React, Express — the right config every time
 
@@ -30,14 +30,14 @@ But there are no tests. No CI. No Dockerfile. No error handling. No rate limitin
 
 ## The problem it solves
 
-| What AI tools give you | What production needs |
-|---|---|
-| Working features | Tests that prove they work |
-| A running dev server | A Dockerfile that runs anywhere |
-| Hardcoded env vars | A `.env.example` and secrets hygiene |
-| No CI | GitHub Actions that catch regressions |
-| No error handling | Structured logging + Sentry |
-| No rate limiting | Helmet + rate-limit middleware |
+| What AI tools give you | What production needs                 |
+| ---------------------- | ------------------------------------- |
+| Working features       | Tests that prove they work            |
+| A running dev server   | A Dockerfile that runs anywhere       |
+| Hardcoded env vars     | A `.env.example` and secrets hygiene  |
+| No CI                  | GitHub Actions that catch regressions |
+| No error handling      | Structured logging + Sentry           |
+| No rate limiting       | Helmet + rate-limit middleware        |
 
 LaunchReadyy closes that gap.
 
@@ -45,14 +45,14 @@ LaunchReadyy closes that gap.
 
 ## Plans
 
-|  | Free | Starter | Pro | Agency |
-|--|------|---------|-----|--------|
-| Price | $0 | $9.80 / mo | $19.80 / mo | $49.80 / mo |
-| Repos | 1 | 3 | 10 | 50 |
-| Scans / month | 3 | 20 | 100 | 500 |
-| AI credits / month | — | 10 | 50 | 250 |
-| AI-generated tests | — | ✓ | ✓ | ✓ |
-| Architecture analysis | — | — | ✓ | ✓ |
+|                       | Free | Starter    | Pro         | Agency      |
+| --------------------- | ---- | ---------- | ----------- | ----------- |
+| Price                 | $0   | $9.80 / mo | $19.80 / mo | $49.80 / mo |
+| Repos                 | 1    | 3          | 10          | 50          |
+| Scans / month         | 3    | 20         | 100         | 500         |
+| AI credits / month    | —    | 10         | 50          | 250         |
+| AI-generated tests    | —    | ✓          | ✓           | ✓           |
+| Architecture analysis | —    | —          | ✓           | ✓           |
 
 **[Start free → launchreadyy.xyz](https://launchreadyy.xyz)**
 
