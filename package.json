@@ -4,7 +4,9 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail --names \"vite,stripe\" -c \"cyan,yellow\" \"vite dev\" \"stripe listen --forward-to localhost:5174/api/stripe/webhook\"",
+    "dev:vite": "vite dev",
+    "dev:stripe": "stripe listen --forward-to localhost:5174/api/stripe/webhook",
+    "dev": "concurrently --kill-others-on-fail --names vite,stripe -c cyan,yellow npm:dev:vite npm:dev:stripe",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
