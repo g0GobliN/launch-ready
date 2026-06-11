@@ -47,6 +47,81 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 // Must intercept BEFORE TanStack's SSR pipeline so we can read the raw body
 // (Stripe signature verification requires the exact raw bytes — no JSON parsing).
 
+type StripeSubRef = { id: string; customer: string | { id: string } | null };
+
+function stripeCustomerId(customer: StripeSubRef["customer"]): string | null {
+  if (!customer) return null;
+  return typeof customer === "string" ? customer : (customer.id ?? null);
+}
+
+// Stripe flexible billing sets cancel_at + canceled_at while cancel_at_period_end stays false.
+function isSubscriptionCancelScheduled(sub: {
+  cancel_at_period_end?: boolean;
+  cancel_at?: number | null;
+  status?: string;
+}): boolean {
+  if (sub.cancel_at_period_end === true) return true;
+  return sub.status === "active" && sub.cancel_at != null;
+}
+
+function subscriptionCancelAtIso(sub: {
+  cancel_at?: number | null;
+  cancel_at_period_end?: boolean;
+  current_period_end?: number;
+  items?: { data?: Array<{ current_period_end?: number }> };
+}): string | null {
+  if (sub.cancel_at) return new Date(sub.cancel_at * 1000).toISOString();
+  const periodEnd = sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+  if (sub.cancel_at_period_end && periodEnd) return new Date(periodEnd * 1000).toISOString();
+  return null;
+}
+
+function isSubscriptionCancelCleared(
+  sub: { cancel_at?: number | null; cancel_at_period_end?: boolean },
+  previousAttributes?: {
+    cancel_at?: number | null;
+    cancel_at_period_end?: boolean;
+    canceled_at?: number | null;
+  },
+): boolean {
+  if (sub.cancel_at != null || sub.cancel_at_period_end) return false;
+  if (!previousAttributes) return false;
+  return (
+    previousAttributes.cancel_at != null ||
+    previousAttributes.cancel_at_period_end === true ||
+    previousAttributes.canceled_at != null
+  );
+}
+
+async function findUserForSubscription(
+  db: Awaited<ReturnType<(typeof import("./lib/supabase.server"))["getServiceRoleClient"]>>,
+  sub: StripeSubRef,
+) {
+  const { data: bySub } = await db
+    .from("user_credits")
+    .select("github_login, email")
+    .eq("stripe_subscription_id", sub.id)
+    .maybeSingle();
+  if (bySub) return bySub;
+
+  const customerId = stripeCustomerId(sub.customer);
+  if (!customerId) return null;
+
+  const { data: byCustomer } = await db
+    .from("user_credits")
+    .select("github_login, email")
+    .eq("stripe_customer_id", customerId)
+    .maybeSingle();
+  if (!byCustomer) return null;
+
+  await db
+    .from("user_credits")
+    .update({ stripe_subscription_id: sub.id, updated_at: new Date().toISOString() })
+    .eq("github_login", byCustomer.github_login);
+
+  return byCustomer;
+}
+
 async function handleStripeWebhook(request: Request): Promise<Response> {
   const { getStripe } = await import("./lib/stripe.server");
   const { getServiceRoleClient } = await import("./lib/supabase.server");
@@ -101,8 +176,8 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
           current_period_start: now.toISOString(),
           current_period_end: periodEnd.toISOString(),
           updated_at: now.toISOString(),
-          stripe_customer_id: session.customer ?? null,
-          stripe_subscription_id: subscriptionId,
+          ...(session.customer ? { stripe_customer_id: session.customer } : {}),
+          ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
           ...(customerEmail ? { email: customerEmail } : {}),
         },
         { onConflict: "github_login" },
@@ -129,11 +204,7 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
   if (event.type === "customer.subscription.deleted") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sub = event.data.object as any;
-    const { data: userRow } = await db
-      .from("user_credits")
-      .select("github_login")
-      .eq("stripe_subscription_id", sub.id)
-      .single();
+    const userRow = await findUserForSubscription(db, sub);
 
     if (userRow) {
       const freePlan = PLANS["free"];
@@ -152,37 +223,47 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
 
       try {
         const { sendCancellationEmail } = await import("./lib/email.server");
-        const customer = await stripe.customers.retrieve(sub.customer);
-        const customerEmail = !customer.deleted && "email" in customer ? customer.email : null;
+        const customerId = stripeCustomerId(sub.customer);
+        const customerEmail =
+          userRow.email ??
+          (customerId
+            ? await stripe.customers
+                .retrieve(customerId)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .then((c: any) => (!c.deleted && "email" in c ? c.email : null))
+                .catch((e: unknown) => {
+                  console.error("[stripe-webhook] stripe customer retrieve error:", e);
+                  return null;
+                })
+            : null);
         if (customerEmail) {
           await sendCancellationEmail(customerEmail, userRow.github_login, "plan");
+          console.log(`[stripe-webhook] deletion cancellation email sent to ${customerEmail}`);
+        } else {
+          console.warn(`[stripe-webhook] no email found for deletion ${userRow.github_login}`);
         }
-      } catch {
-        /* non-critical */
+      } catch (e) {
+        console.error("[stripe-webhook] deletion cancellation email error:", e);
       }
     }
   }
 
-  // customer.subscription.updated — handle cancel_at_period_end (user cancelled, still active until period ends)
+  // customer.subscription.updated — cancel/resubscribe (incl. flexible billing via cancel_at)
   if (event.type === "customer.subscription.updated") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sub = event.data.object as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const previousAttributes = (event.data as any).previous_attributes;
     console.log(
-      `[stripe-webhook] subscription.updated sub.id=${sub.id} cancel_at_period_end=${sub.cancel_at_period_end}`,
+      `[stripe-webhook] subscription.updated sub.id=${sub.id} cancel_at_period_end=${sub.cancel_at_period_end} cancel_at=${sub.cancel_at ?? "null"}`,
     );
-    const { data: userRow, error: userRowError } = await db
-      .from("user_credits")
-      .select("github_login, email")
-      .eq("stripe_subscription_id", sub.id)
-      .single();
-    console.log(
-      `[stripe-webhook] userRow=${JSON.stringify(userRow)} error=${JSON.stringify(userRowError)}`,
-    );
+    const userRow = await findUserForSubscription(db, sub);
+    console.log(`[stripe-webhook] userRow=${JSON.stringify(userRow)}`);
 
     if (userRow) {
-      if (sub.cancel_at_period_end) {
+      if (isSubscriptionCancelScheduled(sub)) {
         console.log(`[stripe-webhook] cancel flow for ${userRow.github_login}`);
-        const cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null;
+        const cancelAt = subscriptionCancelAtIso(sub);
         await db
           .from("user_credits")
           .update({ subscription_cancel_at: cancelAt, updated_at: new Date().toISOString() })
@@ -190,14 +271,17 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
         try {
           const { sendCancellationEmail } = await import("./lib/email.server");
 
-          const stripeEmail = await stripe.customers
-            .retrieve(sub.customer)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .then((c: any) => (!c.deleted && "email" in c ? c.email : null))
-            .catch((e: unknown) => {
-              console.error("[stripe-webhook] stripe customer retrieve error:", e);
-              return null;
-            });
+          const customerId = stripeCustomerId(sub.customer);
+          const stripeEmail = customerId
+            ? await stripe.customers
+                .retrieve(customerId)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .then((c: any) => (!c.deleted && "email" in c ? c.email : null))
+                .catch((e: unknown) => {
+                  console.error("[stripe-webhook] stripe customer retrieve error:", e);
+                  return null;
+                })
+            : null;
           const email = userRow.email ?? stripeEmail;
           console.log(`[stripe-webhook] cancel email=${email} stripeEmail=${stripeEmail}`);
           if (email) {
@@ -216,25 +300,29 @@ async function handleStripeWebhook(request: Request): Promise<Response> {
           .eq("github_login", userRow.github_login)
           .single();
         const wasScheduledToCancel = !!currentRow?.subscription_cancel_at;
+        const cancelCleared = isSubscriptionCancelCleared(sub, previousAttributes);
         console.log(
-          `[stripe-webhook] resubscribe flow wasScheduledToCancel=${wasScheduledToCancel} subscription_cancel_at=${currentRow?.subscription_cancel_at}`,
+          `[stripe-webhook] resubscribe check wasScheduledToCancel=${wasScheduledToCancel} cancelCleared=${cancelCleared} subscription_cancel_at=${currentRow?.subscription_cancel_at}`,
         );
-        await db
-          .from("user_credits")
-          .update({ subscription_cancel_at: null, updated_at: new Date().toISOString() })
-          .eq("github_login", userRow.github_login);
-        if (wasScheduledToCancel) {
+        if (wasScheduledToCancel || cancelCleared) {
+          await db
+            .from("user_credits")
+            .update({ subscription_cancel_at: null, updated_at: new Date().toISOString() })
+            .eq("github_login", userRow.github_login);
           try {
             const { sendResubscribeEmail } = await import("./lib/email.server");
             const { PLANS } = await import("./lib/plans");
             const planName =
               PLANS[(currentRow?.plan as keyof typeof PLANS) ?? "free"]?.name ?? "plan";
 
-            const stripeEmail = await stripe.customers
-              .retrieve(sub.customer)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .then((c: any) => (!c.deleted && "email" in c ? c.email : null))
-              .catch(() => null);
+            const customerId = stripeCustomerId(sub.customer);
+            const stripeEmail = customerId
+              ? await stripe.customers
+                  .retrieve(customerId)
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  .then((c: any) => (!c.deleted && "email" in c ? c.email : null))
+                  .catch(() => null)
+              : null;
             const email = userRow.email ?? stripeEmail;
             console.log(`[stripe-webhook] resubscribe email=${email}`);
             if (email) {
