@@ -114,15 +114,6 @@ export async function getUserPlanData(login: string): Promise<UserPlanData> {
 export async function checkScanLimit(login: string): Promise<void> {
   const d = await getUserPlanData(login);
   if (d.monthlyScanUsed >= d.monthlyScanLimit) {
-    const { data: row } = await getServiceRoleClient()
-      .from("user_credits")
-      .select("email")
-      .eq("github_login", login)
-      .single();
-    if (row?.email) {
-      const { sendLimitReachedEmail } = await import("./email.server");
-      sendLimitReachedEmail(row.email, login, "scans", PLANS[d.plan].name).catch(() => {});
-    }
     throw new Error(`LIMIT:scan:${d.plan}:${d.monthlyScanUsed}/${d.monthlyScanLimit}`);
   }
 }
@@ -131,17 +122,28 @@ export async function incrementScanUsed(login: string): Promise<void> {
   const db = getServiceRoleClient();
   const { data } = await db
     .from("user_credits")
-    .select("monthly_scan_used")
+    .select("monthly_scan_used, monthly_scan_limit, plan, email")
     .eq("github_login", login)
     .single();
   if (data) {
+    const newUsed = data.monthly_scan_used + 1;
     await db
       .from("user_credits")
       .update({
-        monthly_scan_used: data.monthly_scan_used + 1,
+        monthly_scan_used: newUsed,
         updated_at: new Date().toISOString(),
       })
       .eq("github_login", login);
+
+    if (newUsed >= data.monthly_scan_limit && data.email) {
+      const { sendLimitReachedEmail } = await import("./email.server");
+      sendLimitReachedEmail(
+        data.email,
+        login,
+        "scans",
+        PLANS[(data.plan as PlanId) ?? "free"].name,
+      ).catch(() => {});
+    }
   }
 }
 
