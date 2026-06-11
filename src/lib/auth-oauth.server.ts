@@ -1,11 +1,29 @@
 import { getServerConfig } from "./config.server";
-import { storeGitHubToken, storeUserInfo } from "./github-token.server";
+import { clearAuthCookies, storeGitHubToken, storeUserInfo } from "./github-token.server";
 import { createSupabaseServerClient, type CookieToSet } from "./supabase.server";
 import { setCookie } from "@tanstack/react-start/server";
+
+function applyCookies(cookies: CookieToSet[]) {
+  for (const { name, value, options } of cookies) {
+    setCookie(name, value, options);
+  }
+}
+
+export async function signOutAuth() {
+  clearAuthCookies();
+
+  const pendingCookies: CookieToSet[] = [];
+  const supabase = createSupabaseServerClient({ collectCookies: pendingCookies });
+  await supabase.auth.signOut();
+  applyCookies(pendingCookies);
+}
 
 export async function getGitHubOAuthUrl() {
   const { appUrl } = getServerConfig();
   if (!appUrl) throw new Error("APP_URL is not configured");
+
+  // Clear stale Supabase session so the next OAuth flow can use a different GitHub account.
+  await signOutAuth();
 
   const pendingCookies: CookieToSet[] = [];
   const supabase = createSupabaseServerClient({ collectCookies: pendingCookies });
@@ -18,9 +36,7 @@ export async function getGitHubOAuthUrl() {
     },
   });
 
-  for (const { name, value, options } of pendingCookies) {
-    setCookie(name, value, options);
-  }
+  applyCookies(pendingCookies);
 
   if (error || !data.url) throw new Error("Failed to initiate GitHub OAuth");
   return data.url;

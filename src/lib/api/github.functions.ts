@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { getGitHubToken, clearAuthCookies } from "../github-token.server";
+import { getGitHubToken } from "../github-token.server";
 import { getServiceRoleClient } from "../supabase.server";
 import { fetchGitHubRepos } from "../github.server";
 import { scanRepository } from "../scanner.server";
@@ -146,7 +146,8 @@ export const triggerScan = createServerFn({ method: "POST" })
 
 // Signs the user out and clears the auth cookies.
 export const logoutGitHub = createServerFn({ method: "POST" }).handler(async () => {
-  clearAuthCookies();
+  const { signOutAuth } = await import("../auth-oauth.server");
+  await signOutAuth();
 });
 
 // ─── Fix Request Job System ───────────────────────────────────────────────────

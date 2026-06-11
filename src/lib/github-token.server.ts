@@ -1,4 +1,4 @@
-import { deleteCookie, getCookies, setCookie } from "@tanstack/react-start/server";
+import { getCookies, setCookie } from "@tanstack/react-start/server";
 
 const GITHUB_TOKEN_COOKIE = "lr_github_token";
 const USER_INFO_COOKIE = "lr_user";
@@ -39,6 +39,7 @@ export function getStoredUser(): StoredUser | null {
 }
 
 export function clearAuthCookies() {
-  deleteCookie(GITHUB_TOKEN_COOKIE, { path: "/" });
-  deleteCookie(USER_INFO_COOKIE, { path: "/" });
+  const clearOpts = { ...COOKIE_OPTS, maxAge: 0 };
+  setCookie(GITHUB_TOKEN_COOKIE, "", clearOpts);
+  setCookie(USER_INFO_COOKIE, "", clearOpts);
 }
