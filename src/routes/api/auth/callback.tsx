@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
-import { exchangeOAuthCodeFn } from "@/lib/api/auth.functions";
+import { exchangeOAuthCode } from "@/lib/auth-oauth.server";
 
 const searchSchema = z.object({
   code: z.string().optional(),
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/auth/callback")({
     if (!deps.code) {
       throw redirect({ to: "/dashboard", search: { error: "missing_code" } });
     }
-    const { error } = await exchangeOAuthCodeFn({ data: { code: deps.code } });
+    const { error } = await exchangeOAuthCode(deps.code);
     if (error) {
       throw redirect({ to: "/dashboard", search: { error } });
     }

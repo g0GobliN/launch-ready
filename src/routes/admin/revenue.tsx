@@ -33,12 +33,14 @@ export const Route = createFileRoute("/admin/revenue")({
 });
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "hsl(var(--card))",
-  border: "1px solid hsl(var(--border))",
+  backgroundColor: "var(--card)",
+  border: "1px solid var(--border)",
   borderRadius: "8px",
-  color: "hsl(var(--foreground))",
+  color: "var(--card-foreground)",
   fontSize: 13,
 };
+const TOOLTIP_ITEM_STYLE = { color: "var(--card-foreground)" };
+const TOOLTIP_LABEL_STYLE = { color: "var(--muted-foreground)" };
 
 const TICK = { fontSize: 12, fill: "#94a3b8" };
 const GRID_COLOR = "rgba(148,163,184,0.15)";
@@ -81,7 +83,7 @@ function GrowthBadge({ value }: { value: number | null }) {
 }
 
 function AdminRevenue() {
-  const { mrr, arr, planRevenue, mrrByMonth, monthlyDetail } = Route.useLoaderData();
+  const { mrr, arr, planRevenue, mrrByMonth, monthlyDetail, ledgerCapped } = Route.useLoaderData();
   const [chartMonths, setChartMonths] = useState<12 | 24 | 36>(12);
   const [sortDesc, setSortDesc] = useState(true);
   const [yearFilter, setYearFilter] = useState<string>("all");
@@ -288,6 +290,8 @@ function AdminRevenue() {
               />
               <Tooltip
                 contentStyle={TOOLTIP_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
+                labelStyle={TOOLTIP_LABEL_STYLE}
                 formatter={(v: number) => [`$${v.toLocaleString()}`, "MRR"]}
               />
               <Area
@@ -320,6 +324,8 @@ function AdminRevenue() {
                 />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
+                  itemStyle={TOOLTIP_ITEM_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
                   formatter={(v: number) => [`$${v.toLocaleString()}`, "MRR"]}
                 />
                 <Bar dataKey="mrr" radius={[4, 4, 0, 0]}>
@@ -370,7 +376,9 @@ function AdminRevenue() {
           <div>
             <p className="text-sm font-semibold">Revenue Ledger</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {filteredDetail.length} months · page {ledgerPage} of {totalLedgerPages || 1}
+              {filteredDetail.length} month{filteredDetail.length === 1 ? "" : "s"} since launch ·
+              page {ledgerPage} of {totalLedgerPages || 1}
+              {ledgerCapped ? " · capped at 36M" : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

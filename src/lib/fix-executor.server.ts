@@ -1,6 +1,8 @@
 // Implements real PR creation via the GitHub Trees API.
 // Replaces the fake sleep + random PR number in runFixJob.
 
+import { buildReadmeSections } from "./readme-setup";
+
 const GITHUB_API = "https://api.github.com";
 
 // ─── GitHub API helpers ───────────────────────────────────────────────────────
@@ -285,7 +287,8 @@ test("home loads", async ({ page }) => {
 });
 `;
 
-const CI_WORKFLOW = `name: CI
+function ciWorkflow(nodeVersion: string): string {
+  return `name: CI
 
 on:
   push:
@@ -322,7 +325,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${nodeVersion}
           cache: \${{ steps.pm.outputs.name }}
 
       - name: Install dependencies
@@ -332,13 +335,18 @@ jobs:
         id: scripts
         run: |
           has() { node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)"; }
-          has lint  && echo "lint=true"  >> $GITHUB_OUTPUT || echo "lint=false"  >> $GITHUB_OUTPUT
-          has test  && echo "test=true"  >> $GITHUB_OUTPUT || echo "test=false"  >> $GITHUB_OUTPUT
-          has build && echo "build=true" >> $GITHUB_OUTPUT || echo "build=false" >> $GITHUB_OUTPUT
+          has lint      && echo "lint=true"      >> $GITHUB_OUTPUT || echo "lint=false"      >> $GITHUB_OUTPUT
+          has typecheck && echo "typecheck=true" >> $GITHUB_OUTPUT || echo "typecheck=false" >> $GITHUB_OUTPUT
+          has test      && echo "test=true"      >> $GITHUB_OUTPUT || echo "test=false"      >> $GITHUB_OUTPUT
+          has build     && echo "build=true"     >> $GITHUB_OUTPUT || echo "build=false"     >> $GITHUB_OUTPUT
 
       - name: Lint
         if: steps.scripts.outputs.lint == 'true'
         run: \${{ steps.pm.outputs.run }} lint
+
+      - name: Typecheck
+        if: steps.scripts.outputs.typecheck == 'true'
+        run: \${{ steps.pm.outputs.run }} typecheck
 
       - name: Test
         if: steps.scripts.outputs.test == 'true'
@@ -348,6 +356,7 @@ jobs:
         if: steps.scripts.outputs.build == 'true'
         run: \${{ steps.pm.outputs.run }} build
 `;
+}
 
 const ESLINT_CONFIG = `import tseslint from "@typescript-eslint/eslint-plugin";
 import parser from "@typescript-eslint/parser";
@@ -532,6 +541,87 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 }
 `;
 
+// ─── Next.js standalone config ───────────────────────────────────────────────
+
+const NEXT_CONFIG_STANDALONE = `import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  output: "standalone",
+};
+
+export default nextConfig;
+`;
+
+// Patches an existing next.config file to add output: "standalone".
+// Returns null if the config already has it (no change needed).
+function patchNextConfigStandalone(content: string): string | null {
+  if (/output\s*:\s*["']standalone["']/.test(content)) return null;
+  const insertAt = content.search(/(?:=\s*\{|export\s+default\s*\{)/);
+  if (insertAt === -1) return null;
+  const braceIdx = content.indexOf("{", insertAt);
+  if (braceIdx === -1) return null;
+  return (
+    content.slice(0, braceIdx + 1) + '\n  output: "standalone",' + content.slice(braceIdx + 1)
+  );
+}
+
+// ─── Sentry templates ─────────────────────────────────────────────────────────
+
+const SENTRY_INIT_NEXTJS = `import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 0.1,
+});
+`;
+
+const SENTRY_INSTRUMENTATION_NEXTJS = `export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./src/lib/sentry");
+  }
+}
+`;
+
+// ─── Entry-point detection ────────────────────────────────────────────────────
+
+const EXPRESS_ENTRY_CANDIDATES = [
+  "src/index.ts",
+  "src/index.js",
+  "index.ts",
+  "index.js",
+  "src/server.ts",
+  "src/server.js",
+  "server.ts",
+  "server.js",
+  "src/app.ts",
+  "src/app.js",
+  "app.ts",
+  "app.js",
+];
+
+const REACT_VITE_ENTRY_CANDIDATES = [
+  "src/main.tsx",
+  "src/main.ts",
+  "src/index.tsx",
+  "src/index.ts",
+  "main.tsx",
+  "main.ts",
+];
+
+async function detectEntryPoint(
+  token: string,
+  fullName: string,
+  framework: string,
+): Promise<string | null> {
+  const candidates =
+    framework === "Express" ? EXPRESS_ENTRY_CANDIDATES : REACT_VITE_ENTRY_CANDIDATES;
+  for (const candidate of candidates) {
+    const content = await fetchFileContent(token, fullName, candidate);
+    if (content !== null) return candidate;
+  }
+  return null;
+}
+
 // ─── Framework-aware content generators ──────────────────────────────────────
 
 function vitestConfig(framework: string): string {
@@ -544,17 +634,28 @@ function dockerfile(framework: string): string {
   return DOCKERFILE; // Express / unknown → node server
 }
 
-function pmCommands(pm: string) {
-  if (pm === "pnpm")
-    return { install: "pnpm install", dev: "pnpm dev", build: "pnpm build", test: "pnpm test" };
-  if (pm === "yarn")
-    return { install: "yarn", dev: "yarn dev", build: "yarn build", test: "yarn test" };
-  if (pm === "bun")
-    return { install: "bun install", dev: "bun dev", build: "bun build", test: "bun test" };
-  return { install: "npm install", dev: "npm run dev", build: "npm run build", test: "npm test" };
+// ─── Repo scanning helpers ────────────────────────────────────────────────────
+
+interface PackageJsonMeta {
+  scripts: Record<string, string>;
+  nodeVersion: string;
 }
 
-// ─── Repo scanning helpers ────────────────────────────────────────────────────
+async function fetchPackageJsonMeta(token: string, fullName: string): Promise<PackageJsonMeta> {
+  const content = await fetchFileContent(token, fullName, "package.json");
+  if (!content) return { scripts: {}, nodeVersion: "20" };
+  try {
+    const pkg = JSON.parse(content) as {
+      scripts?: Record<string, string>;
+      engines?: { node?: string };
+    };
+    const rawNode = pkg.engines?.node ?? "20";
+    const nodeVersion = rawNode.match(/\d+/)?.[0] ?? "20";
+    return { scripts: pkg.scripts ?? {}, nodeVersion };
+  } catch {
+    return { scripts: {}, nodeVersion: "20" };
+  }
+}
 
 async function detectPackageManager(
   token: string,
@@ -621,7 +722,7 @@ const FIX_LABEL: Record<string, string> = {
   prettier: "Prettier",
   dockerfile: "Dockerfile",
   "env-example": ".env.example",
-  readme: "README setup",
+  readme: "Setup documentation",
   "error-boundary": "error boundary",
   monitoring: "Sentry monitoring",
   helmet: "Helmet security headers",
@@ -634,6 +735,17 @@ const FIX_LABEL: Record<string, string> = {
 
 // ─── File collector ───────────────────────────────────────────────────────────
 
+export interface VerificationNote {
+  fixId: string;
+  status: "verified" | "warning";
+  note: string;
+}
+
+export interface CollectResult {
+  files: { path: string; content: string }[];
+  verificationNotes: VerificationNote[];
+}
+
 export interface AiTestFile {
   path: string;
   content: string;
@@ -644,7 +756,7 @@ export async function collectFixFiles(
   fullName: string,
   fixIds: string[],
   opts?: { framework?: string; repoName?: string; aiFiles?: AiTestFile[] },
-): Promise<{ path: string; content: string }[]> {
+): Promise<CollectResult> {
   const framework = opts?.framework ?? "unknown";
   const repoName = opts?.repoName ?? fullName.split("/")[1] ?? "project";
   const aiFiles = opts?.aiFiles;
@@ -653,8 +765,23 @@ export async function collectFixFiles(
   const pkgMods: PkgMods = { scripts: {}, deps: {}, devDeps: {} };
   const gitignoreAppends: string[] = [];
   const readmeSections: string[] = [];
+  const verificationNotes: VerificationNote[] = [];
 
   const add = (path: string, content: string) => fileMap.set(path, content);
+  const note = (fixId: string, status: "verified" | "warning", text: string) =>
+    verificationNotes.push({ fixId, status, note: text });
+
+  // Pre-fetch package metadata + package manager once for all fixes that need them
+  const needsPkgMeta = fixIds.some((id) => ["github-actions", "readme", "env-example"].includes(id));
+  const [pkgMeta, pm] = needsPkgMeta
+    ? await Promise.all([
+        fetchPackageJsonMeta(token, fullName),
+        detectPackageManager(token, fullName),
+      ])
+    : [
+        { scripts: {}, nodeVersion: "20" } as PackageJsonMeta,
+        "npm" as "npm" | "pnpm" | "yarn" | "bun",
+      ];
 
   for (const fixId of fixIds) {
     switch (fixId) {
@@ -676,9 +803,27 @@ export async function collectFixFiles(
         gitignoreAppends.push("/test-results/", "/playwright-report/", "/playwright/.cache/");
         break;
 
-      case "github-actions":
-        add(".github/workflows/ci.yml", CI_WORKFLOW);
+      case "github-actions": {
+        // .nvmrc takes precedence over engines.node; both beat our default of 20
+        const nvmrc = await fetchFileContent(token, fullName, ".nvmrc");
+        const nodeVersion = nvmrc
+          ? (nvmrc.trim().replace(/^v/, "").match(/\d+/)?.[0] ?? pkgMeta.nodeVersion)
+          : pkgMeta.nodeVersion;
+
+        // Ensure a typecheck script exists — add tsc --noEmit if missing
+        const hasTypecheck = "typecheck" in pkgMeta.scripts;
+        if (!hasTypecheck) pkgMods.scripts.typecheck = "tsc --noEmit";
+
+        add(".github/workflows/ci.yml", ciWorkflow(nodeVersion));
+
+        const nodeSource = nvmrc ? ".nvmrc" : pkgMeta.nodeVersion !== "20" ? "engines.node" : "default";
+        note(
+          "github-actions",
+          "verified",
+          `Node ${nodeVersion} (${nodeSource}) · ${hasTypecheck ? "typecheck script detected" : "typecheck script added to package.json"}`,
+        );
         break;
+      }
 
       case "eslint":
         add("eslint.config.js", ESLINT_CONFIG);
@@ -699,16 +844,41 @@ export async function collectFixFiles(
         Object.assign(pkgMods.devDeps, { prettier: "^3.3.0" });
         break;
 
-      case "dockerfile":
+      case "dockerfile": {
         add("Dockerfile", dockerfile(framework));
         add(".dockerignore", DOCKER_IGNORE);
+
+        if (framework === "Next.js") {
+          // Standalone Dockerfile requires output: "standalone" in next.config — patch or create it
+          let configPatched = false;
+          for (const configPath of ["next.config.ts", "next.config.js", "next.config.mjs"]) {
+            const existing = await fetchFileContent(token, fullName, configPath);
+            if (existing !== null) {
+              const patched = patchNextConfigStandalone(existing);
+              if (patched !== null) {
+                add(configPath, patched);
+                note("dockerfile", "verified", `${configPath} patched: output: "standalone" added`);
+              } else {
+                note("dockerfile", "verified", `${configPath} already has output: "standalone"`);
+              }
+              configPatched = true;
+              break;
+            }
+          }
+          if (!configPatched) {
+            add("next.config.ts", NEXT_CONFIG_STANDALONE);
+            note("dockerfile", "verified", `next.config.ts created with output: "standalone"`);
+          }
+        } else {
+          const variant =
+            framework === "Vite" || framework === "React" ? "nginx static" : "Node.js server";
+          note("dockerfile", "verified", `${variant} Dockerfile added`);
+        }
         break;
+      }
 
       case "env-example":
-        // ENV_EXAMPLE is a placeholder — real content built below after scanning
-        readmeSections.push(
-          `## Environment variables\n\nCopy \`.env.example\` to \`.env\` and fill in the required values:\n\n\`\`\`bash\ncp .env.example .env\n\`\`\``,
-        );
+        // .env.example content built below after env var scan
         break;
 
       case "readme":
@@ -720,8 +890,13 @@ export async function collectFixFiles(
         break;
 
       case "monitoring":
-        add("src/lib/sentry.ts", SENTRY_INIT);
-        Object.assign(pkgMods.deps, { "@sentry/react": "^8.0.0" });
+        if (framework === "Next.js") {
+          add("src/lib/sentry.ts", SENTRY_INIT_NEXTJS);
+          Object.assign(pkgMods.deps, { "@sentry/nextjs": "^8.0.0" });
+        } else {
+          add("src/lib/sentry.ts", SENTRY_INIT);
+          Object.assign(pkgMods.deps, { "@sentry/react": "^8.0.0" });
+        }
         break;
 
       case "helmet":
@@ -761,26 +936,40 @@ export async function collectFixFiles(
     }
   }
 
+  const needsEnvExample = fixIds.includes("env-example");
+  const detectedEnvVars = needsEnvExample ? await detectEnvVars(token, fullName) : [];
+
   // .env.example — scan repo for actual env vars, fall back to generic template
-  if (fixIds.includes("env-example")) {
-    const detected = await detectEnvVars(token, fullName);
+  if (needsEnvExample) {
     const lines =
-      detected.length > 0
-        ? ["# Copy to .env and fill in", ...detected.map((v) => `${v}=`)]
+      detectedEnvVars.length > 0
+        ? ["# Copy to .env and fill in", ...detectedEnvVars.map((v) => `${v}=`)]
         : ENV_EXAMPLE.trim().split("\n");
     add(".env.example", lines.join("\n") + "\n");
   }
 
-  // README — detect package manager and use real repo name
-  if (fixIds.includes("readme") || readmeSections.length > 0) {
-    const pm = await detectPackageManager(token, fullName);
-    const cmds = pmCommands(pm);
-    if (fixIds.includes("readme")) {
-      const envStep = fixIds.includes("env-example")
-        ? `**2. Configure environment**\n\n\`\`\`bash\ncp .env.example .env\n\`\`\`\n\nFill in \`.env\` with required variables.\n\n**3. Run in development**`
-        : `**2. Run in development**`;
-      readmeSections.unshift(
-        `## Getting started\n\n**1. Clone and install**\n\n\`\`\`bash\ngit clone https://github.com/<you>/${repoName}.git\ncd ${repoName}\n${cmds.install}\n\`\`\`\n\n${envStep}\n\n\`\`\`bash\n${cmds.dev}\n\`\`\``,
+  // README — repo-specific setup docs (package manager, scripts, env vars)
+  const needsReadme = fixIds.includes("readme");
+  const needsEnvOnlyReadme = needsEnvExample && !needsReadme;
+  if (needsReadme || needsEnvOnlyReadme) {
+    const envVars = needsEnvExample ? detectedEnvVars : [];
+
+    if (needsReadme) {
+      readmeSections.push(
+        ...buildReadmeSections({
+          fullName,
+          repoName,
+          framework,
+          packageManager: pm,
+          scripts: pkgMeta.scripts,
+          nodeVersion: pkgMeta.nodeVersion,
+          envVars,
+          withEnvStep: needsEnvExample,
+        }),
+      );
+    } else if (needsEnvOnlyReadme) {
+      readmeSections.push(
+        `## Environment variables\n\nCopy \`.env.example\` to \`.env\` and fill in the required values:\n\n\`\`\`bash\ncp .env.example .env\n\`\`\`\n\nRequired variables:\n\n${envVars.length ? envVars.map((v) => `- \`${v}\``).join("\n") : "See `.env.example` for the full list."}`,
       );
     }
   }
@@ -810,47 +999,92 @@ export async function collectFixFiles(
     add("README.md", base + readmeSections.join("\n\n") + "\n");
   }
 
-  // src/main.tsx — Sentry import
+  // ── Entry-point wiring ────────────────────────────────────────────────────
+
+  // Sentry — wire import into app entry point
   if (fixIds.includes("monitoring")) {
-    const patched = await patchSourceFile(
-      token,
-      fullName,
-      "src/main.tsx",
-      [`import "./lib/sentry";`],
-      [],
-    );
-    if (patched) add("src/main.tsx", patched);
+    if (framework === "Next.js") {
+      // Next.js 13.4+: instrumentation.ts registers on startup, no entry patching needed
+      add("instrumentation.ts", SENTRY_INSTRUMENTATION_NEXTJS);
+      note("monitoring", "verified", "instrumentation.ts created (Next.js App Router)");
+    } else {
+      const entryPoint = await detectEntryPoint(token, fullName, framework);
+      if (entryPoint) {
+        const importPath = entryPoint.startsWith("src/") ? "./lib/sentry" : "./src/lib/sentry";
+        const patched = await patchSourceFile(
+          token,
+          fullName,
+          entryPoint,
+          [`import "${importPath}";`],
+          [],
+        );
+        if (patched) {
+          add(entryPoint, patched);
+          note("monitoring", "verified", `Sentry import wired into ${entryPoint}`);
+        } else {
+          note(
+            "monitoring",
+            "warning",
+            `Found ${entryPoint} but could not patch — add \`import "${importPath}"\` manually`,
+          );
+        }
+      } else {
+        note(
+          "monitoring",
+          "warning",
+          `No entry point found — add \`import "./lib/sentry"\` to your app entry file`,
+        );
+      }
+    }
   }
 
-  // src/index.ts — Express middleware imports + usage
-  const indexImports: string[] = [];
-  const indexUsages: { after: string; lines: string[] }[] = [];
+  // Express middleware — wire imports + usage into detected entry point
+  const expressMiddlewareFixes = ["helmet", "rate-limit", "logger"].filter((id) =>
+    fixIds.includes(id),
+  );
+  if (expressMiddlewareFixes.length > 0) {
+    const indexImports: string[] = [];
+    const indexUsages: { after: string; lines: string[] }[] = [];
 
-  if (fixIds.includes("helmet")) {
-    indexImports.push(`import { applyHelmet } from "./middleware/security";`);
-    indexUsages.push({ after: "const app = express()", lines: ["applyHelmet(app);"] });
-  }
-  if (fixIds.includes("rate-limit")) {
-    indexImports.push(`import { applyRateLimit } from "./middleware/rate-limit";`);
-    indexUsages.push({ after: "const app = express()", lines: ["applyRateLimit(app);"] });
-  }
-  if (fixIds.includes("logger")) {
-    indexImports.push(`import { requestLogger } from "./middleware/logging";`);
-    indexUsages.push({ after: "const app = express()", lines: ["app.use(requestLogger);"] });
+    if (fixIds.includes("helmet")) {
+      indexImports.push(`import { applyHelmet } from "./middleware/security";`);
+      indexUsages.push({ after: "const app = express()", lines: ["applyHelmet(app);"] });
+    }
+    if (fixIds.includes("rate-limit")) {
+      indexImports.push(`import { applyRateLimit } from "./middleware/rate-limit";`);
+      indexUsages.push({ after: "const app = express()", lines: ["applyRateLimit(app);"] });
+    }
+    if (fixIds.includes("logger")) {
+      indexImports.push(`import { requestLogger } from "./middleware/logging";`);
+      indexUsages.push({ after: "const app = express()", lines: ["app.use(requestLogger);"] });
+    }
+
+    const entryPoint = await detectEntryPoint(token, fullName, "Express");
+    if (entryPoint) {
+      const patched = await patchSourceFile(token, fullName, entryPoint, indexImports, indexUsages);
+      if (patched) {
+        add(entryPoint, patched);
+        for (const id of expressMiddlewareFixes) {
+          note(id, "verified", `middleware wired into ${entryPoint}`);
+        }
+      } else {
+        for (const id of expressMiddlewareFixes) {
+          note(
+            id,
+            "warning",
+            `Found ${entryPoint} but could not patch — add middleware imports manually`,
+          );
+        }
+      }
+    } else {
+      for (const id of expressMiddlewareFixes) {
+        note(id, "warning", `Express entry point not found — add middleware imports manually`);
+      }
+    }
   }
 
-  if (indexImports.length) {
-    const patched = await patchSourceFile(
-      token,
-      fullName,
-      "src/index.ts",
-      indexImports,
-      indexUsages,
-    );
-    if (patched) add("src/index.ts", patched);
-  }
-
-  return [...fileMap.entries()].map(([path, content]) => ({ path, content }));
+  const files = [...fileMap.entries()].map(([path, content]) => ({ path, content }));
+  return { files, verificationNotes };
 }
 
 // ─── PR creation from pre-generated files ────────────────────────────────────
@@ -862,6 +1096,7 @@ export async function createPRFromFiles(
   branchName: string,
   fixIds: string[],
   files: { path: string; content: string }[],
+  verificationNotes?: VerificationNote[],
 ): Promise<{ prNumber: number; prUrl: string }> {
   if (!files.length) throw new Error("No files to commit.");
 
@@ -893,6 +1128,21 @@ export async function createPRFromFiles(
           .join(", ")} +${fixIds.length - 3} more`
       : labels.join(", ");
 
+  const verificationSection =
+    verificationNotes && verificationNotes.length > 0
+      ? [
+          `## Verification`,
+          ``,
+          `| Fix | Status | Notes |`,
+          `|-----|--------|-------|`,
+          ...verificationNotes.map(
+            (n) =>
+              `| ${FIX_LABEL[n.fixId] ?? n.fixId} | ${n.status === "verified" ? "✅" : "⚠️ needs manual step"} | ${n.note} |`,
+          ),
+          ``,
+        ]
+      : [];
+
   const prBody = [
     `## Production setup added by LaunchReadyy`,
     ``,
@@ -900,7 +1150,8 @@ export async function createPRFromFiles(
     ``,
     `**Files changed:** ${files.length} file${files.length !== 1 ? "s" : ""}`,
     ``,
-    `<details><summary>Files</summary>`,
+    ...verificationSection,
+    `<details><summary>Files changed</summary>`,
     ``,
     files.map((f) => `- \`${f.path}\``).join("\n"),
     ``,
@@ -932,8 +1183,16 @@ export async function executeFixJob(
   fixIds: string[],
   opts?: { framework?: string; repoName?: string; aiFiles?: AiTestFile[] },
 ): Promise<{ prNumber: number; prUrl: string }> {
-  const files = await collectFixFiles(token, repoFullName, fixIds, opts);
-  return createPRFromFiles(token, repoFullName, defaultBranch, branchName, fixIds, files);
+  const { files, verificationNotes } = await collectFixFiles(token, repoFullName, fixIds, opts);
+  return createPRFromFiles(
+    token,
+    repoFullName,
+    defaultBranch,
+    branchName,
+    fixIds,
+    files,
+    verificationNotes,
+  );
 }
 
 // ─── Preview diff computation ─────────────────────────────────────────────────
@@ -1085,6 +1344,6 @@ export async function computePreviewDiffs(
   fixIds: string[],
   opts?: { framework?: string; repoName?: string },
 ): Promise<PreviewFileDiff[]> {
-  const proposed = await collectFixFiles(token, fullName, fixIds, opts);
-  return computeDiffsFromFiles(token, fullName, proposed);
+  const { files } = await collectFixFiles(token, fullName, fixIds, opts);
+  return computeDiffsFromFiles(token, fullName, files);
 }

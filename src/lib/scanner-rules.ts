@@ -81,9 +81,9 @@ export function checkReadme(readme: string | null, issues: IssueInput[]) {
   if (!hasReadmeSetupSection(readme)) {
     issues.push({
       category: "Documentation",
-      title: "README missing setup section",
+      title: "Missing setup instructions",
       severity: "medium",
-      why: "New contributors can't get the project running without setup instructions.",
+      why: "New contributors can't clone, install, and run the project without a setup section.",
       timeSaved: "1h",
       fixId: "readme",
     });
@@ -164,21 +164,21 @@ export function checkNextJs(deps: Record<string, string>, files: string[], issue
   if (!deps["vitest"]) {
     issues.push({
       category: "Testing",
-      title: "Missing Vitest (unit tests)",
+      title: "No unit tests",
       severity: "high",
-      why: "Vitest integrates tightly with Next.js and gives fast feedback on component and logic regressions.",
+      why: "Vitest integrates tightly with Next.js and gives fast feedback on component and logic regressions. AI-generated tests import your real components.",
       timeSaved: "3h",
-      fixId: "vitest",
+      fixId: "vitest-ai",
     });
   }
   if (!deps["@playwright/test"]) {
     issues.push({
       category: "Testing",
-      title: "Missing Playwright (end-to-end tests)",
+      title: "No end-to-end tests",
       severity: "medium",
-      why: "E2E tests catch broken user flows that unit tests miss. Playwright is the standard for Next.js apps.",
+      why: "E2E tests catch broken user flows that unit tests miss. AI-generated tests cover your actual routes.",
       timeSaved: "4h",
-      fixId: "playwright",
+      fixId: "playwright-ai",
     });
   }
   const hasErrorBoundary = files.some(
@@ -203,21 +203,21 @@ export function checkVite(deps: Record<string, string>, files: string[], issues:
   if (!deps["vitest"]) {
     issues.push({
       category: "Testing",
-      title: "Missing Vitest (unit tests)",
+      title: "No unit tests",
       severity: "high",
-      why: "Vitest is the fastest unit test runner for Vite projects and shares the same config.",
+      why: "Vitest is the fastest unit test runner for Vite projects and shares the same config. AI-generated tests import your real components.",
       timeSaved: "3h",
-      fixId: "vitest",
+      fixId: "vitest-ai",
     });
   }
   if (!deps["@playwright/test"]) {
     issues.push({
       category: "Testing",
-      title: "Missing Playwright (end-to-end tests)",
+      title: "No end-to-end tests",
       severity: "medium",
-      why: "E2E tests catch broken user flows that unit tests miss.",
+      why: "E2E tests catch broken user flows that unit tests miss. AI-generated tests cover your actual routes.",
       timeSaved: "4h",
-      fixId: "playwright",
+      fixId: "playwright-ai",
     });
   }
   const hasEslint =

@@ -197,7 +197,7 @@ function WorkflowPage() {
                   "Express security (Helmet + rate limit)",
                   "Winston logging setup",
                   ".env.example",
-                  "README setup section",
+                  "Setup instructions",
                 ].map((x) => (
                   <div
                     key={x}

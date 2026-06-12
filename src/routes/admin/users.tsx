@@ -146,7 +146,8 @@ function AdminUsers() {
                 <th className="px-5 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Plan</th>
                 <th className="px-4 py-3 font-medium">Scans</th>
-                <th className="px-4 py-3 font-medium">AI Credits</th>
+                <th className="px-4 py-3 font-medium">AI used</th>
+                <th className="px-4 py-3 font-medium">Left</th>
                 <th className="px-4 py-3 font-medium">Joined</th>
                 <th className="px-4 py-3 font-medium">Admin</th>
                 <th className="px-4 py-3 font-medium"></th>
@@ -156,6 +157,7 @@ function AdminUsers() {
               {users.map((u) => {
                 const planDef = PLANS[u.plan as keyof typeof PLANS] ?? PLANS.free;
                 const scanPct = Math.min(100, (u.monthly_scan_used / u.monthly_scan_limit) * 100);
+                const showAdminBadge = u.is_admin || u.isBootstrapAdmin;
                 return (
                   <tr key={u.github_login} className="hover:bg-muted/20 transition-colors">
                     <td className="px-5 py-3">
@@ -193,9 +195,19 @@ function AdminUsers() {
                         </span>
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-xs">
+                      <span className="font-medium text-foreground">{u.aiUsedMonth}</span> cr
+                      {u.ai_credits_total > 0 && (
+                        <span
+                          className={`ml-1 ${u.aiUsagePct >= 80 ? "text-destructive" : "text-muted-foreground"}`}
+                        >
+                          ({u.aiUsagePct}%)
+                        </span>
+                      )}
+                      <div className="text-muted-foreground">~${u.estCostMonth}</div>
+                    </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{u.balance}</span> /{" "}
-                      {u.ai_credits_total} cr
+                      {u.balance} / {u.ai_credits_total}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(u.created_at).toLocaleDateString("en-US", {
@@ -207,20 +219,29 @@ function AdminUsers() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() =>
-                          setAdminConfirm({ githubLogin: u.github_login, makeAdmin: !u.is_admin })
+                          setAdminConfirm({
+                            githubLogin: u.github_login,
+                            makeAdmin: !showAdminBadge,
+                          })
                         }
-                        disabled={togglingAdmin === u.github_login}
-                        title={u.is_admin ? "Revoke admin" : "Make admin"}
-                        className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition cursor-pointer disabled:opacity-50 ${u.is_admin ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "border-border hover:bg-muted text-muted-foreground"}`}
+                        disabled={togglingAdmin === u.github_login || u.isBootstrapAdmin}
+                        title={
+                          u.isBootstrapAdmin
+                            ? "Env bootstrap admin"
+                            : showAdminBadge
+                              ? "Revoke admin"
+                              : "Make admin"
+                        }
+                        className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition cursor-pointer disabled:opacity-50 ${showAdminBadge ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "border-border hover:bg-muted text-muted-foreground"}`}
                       >
                         {togglingAdmin === u.github_login ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : u.is_admin ? (
+                        ) : showAdminBadge ? (
                           <ShieldCheck className="h-3 w-3" />
                         ) : (
                           <ShieldOff className="h-3 w-3" />
                         )}
-                        {u.is_admin ? "Admin" : "User"}
+                        {showAdminBadge ? (u.isBootstrapAdmin ? "Env admin" : "Admin") : "User"}
                       </button>
                     </td>
                     <td className="px-4 py-3">

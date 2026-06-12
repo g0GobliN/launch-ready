@@ -25,6 +25,7 @@ export const aiService = {
       prompt,
       options?.maxTokens,
       options?.cacheKey,
+      options?.repoUrl,
     );
   },
 
@@ -43,6 +44,7 @@ export const aiService = {
       prompt,
       options?.maxTokens,
       options?.cacheKey,
+      options?.repoUrl,
     );
   },
 

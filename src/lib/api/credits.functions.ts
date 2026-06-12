@@ -19,7 +19,11 @@ export const getCreditHistoryFn = createServerFn({ method: "GET" }).handler(asyn
 
 export const getSessionUserFn = createServerFn({ method: "GET" }).handler(async () => {
   const { getStoredUser } = await import("../github-token.server");
-  return getStoredUser();
+  const { isAdminUser } = await import("../admin.server");
+  const user = getStoredUser();
+  if (!user) return null;
+  const isAdmin = await isAdminUser(user.login);
+  return { ...user, isAdmin };
 });
 
 export const getUserPlanFn = createServerFn({ method: "GET" }).handler(async () => {

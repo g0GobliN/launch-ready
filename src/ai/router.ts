@@ -3,6 +3,7 @@ import { DeepSeekProvider } from "./providers/deepseek";
 import { ClaudeProvider } from "./providers/claude";
 import { OpenAIProvider } from "./providers/openai";
 import { GeminiProvider } from "./providers/gemini";
+import { CursorProvider } from "./providers/cursor";
 
 // ─── Provider singletons ──────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ let _deepseek: DeepSeekProvider | null = null;
 let _claude: ClaudeProvider | null = null;
 let _openai: OpenAIProvider | null = null;
 let _gemini: GeminiProvider | null = null;
+let _cursor: CursorProvider | null = null;
 
 function getProvider(name: string): AIProvider {
   switch (name) {
@@ -19,8 +21,10 @@ function getProvider(name: string): AIProvider {
       return (_deepseek ??= new DeepSeekProvider(key));
     }
     case "claude": {
-      const key = process.env.CLAUDE_API_KEY;
-      if (!key) throw new Error("CLAUDE_API_KEY is not set in your .env file.");
+      const key = process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY;
+      if (!key) {
+        throw new Error("CLAUDE_API_KEY (or ANTHROPIC_API_KEY) is not set in your .env file.");
+      }
       return (_claude ??= new ClaudeProvider(key));
     }
     case "openai": {
@@ -33,9 +37,14 @@ function getProvider(name: string): AIProvider {
       if (!key) throw new Error("GEMINI_API_KEY is not set in your .env file.");
       return (_gemini ??= new GeminiProvider(key));
     }
+    case "cursor": {
+      const key = process.env.CURSOR_API_KEY;
+      if (!key) throw new Error("CURSOR_API_KEY is not set in your .env file.");
+      return (_cursor ??= new CursorProvider(key));
+    }
     default:
       throw new Error(
-        `Unknown AI provider: "${name}". Valid options: deepseek, claude, openai, gemini.`,
+        `Unknown AI provider: "${name}". Valid options: deepseek, claude, openai, gemini, cursor.`,
       );
   }
 }
@@ -100,6 +109,7 @@ export async function route(
   prompt: string,
   maxTokens?: number,
   explicitCacheKey?: string,
+  repoUrl?: string,
 ): Promise<string> {
   const providerName = selectProviderName(ctx);
   const cacheKey = explicitCacheKey ?? buildCacheKey(providerName, method, prompt);
@@ -110,8 +120,8 @@ export async function route(
   const provider = getProvider(providerName);
   const result =
     method === "analyze"
-      ? await provider.analyze(prompt, maxTokens)
-      : await provider.generate(prompt, maxTokens);
+      ? await provider.analyze(prompt, maxTokens, repoUrl)
+      : await provider.generate(prompt, maxTokens, repoUrl);
 
   responseCache.set(cacheKey, result);
   return result;

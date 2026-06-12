@@ -47,10 +47,8 @@ export async function exchangeOAuthCode(code: string) {
   const supabase = createSupabaseServerClient({ collectCookies: pendingCookies });
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-  // Apply PKCE cleanup cookie (code-verifier deletion) — safe to set, small value.
-  for (const c of pendingCookies) {
-    if (c.value.length === 0) setCookie(c.name, c.value, c.options);
-  }
+  // Must run in the route loader request so Set-Cookie headers reach the browser.
+  applyCookies(pendingCookies);
 
   if (error) return { error: error.message };
   if (!data.session?.provider_token) {

@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { checkAdminFn } from "@/lib/api/admin.functions";
 import { SiteHeader } from "@/components/site-header";
-import { BarChart3, Users, Wrench, TrendingUp, Gift, ChevronRight } from "lucide-react";
+import { BarChart3, Users, Wrench, TrendingUp, Gift, ChevronRight, Calculator } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   loader: async () => {
@@ -23,6 +23,12 @@ const NAV = [
     to: "/admin/revenue",
     label: "Revenue",
     icon: <TrendingUp className="h-4 w-4" />,
+    exact: false,
+  },
+  {
+    to: "/admin/economics",
+    label: "Economics",
+    icon: <Calculator className="h-4 w-4" />,
     exact: false,
   },
   {

@@ -1,24 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { PLANS } from "../plans";
+import { estimateAiCost, planRevenuePerCredit, activeAiProvider, aiCostPerCredit } from "../ai-economics.server";
+import { isAdminUser, isBootstrapAdmin } from "../admin.server";
+import { PLANS, type PlanId } from "../plans";
 
 async function requireAdmin(login: string | undefined) {
-  if (!login) throw new Error("Forbidden");
-  // Bootstrap: env var always grants access (for first-time setup)
-  const bootstrapAdmins = (process.env.ADMIN_GITHUB_LOGIN ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (bootstrapAdmins.includes(login)) return;
-  // DB check: is_admin column
-  const { getServiceRoleClient } = await import("../supabase.server");
-  const db = getServiceRoleClient();
-  const { data } = await db
-    .from("user_credits")
-    .select("is_admin")
-    .eq("github_login", login)
-    .maybeSingle();
-  if (!data?.is_admin) throw new Error("Forbidden");
+  if (!login || !(await isAdminUser(login))) throw new Error("Forbidden");
 }
 
 function lastNDays(n: number) {
@@ -53,13 +40,13 @@ export const loadAdminOverviewFn = createServerFn({ method: "GET" })
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
     const [{ data: users }, { data: allScans }, { data: allJobs }] = await Promise.all([
-      db.from("user_credits").select("plan, created_at"),
-      db.from("scans").select("id, created_at").gte("created_at", since),
-      db
-        .from("fix_requests")
-        .select("id, status, credits_cost, created_at")
-        .gte("created_at", since),
-    ]);
+        db.from("user_credits").select("plan, created_at"),
+        db.from("scans").select("id, created_at").gte("created_at", since),
+        db
+          .from("fix_requests")
+          .select("id, status, created_at")
+          .gte("created_at", since),
+      ]);
 
     const days = lastNDays(data.days);
     const signupsByDay = days.map(({ date, label }) => ({
@@ -107,6 +94,65 @@ export const loadAdminOverviewFn = createServerFn({ method: "GET" })
     };
   });
 
+export const loadAdminEconomicsFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { getStoredUser } = await import("../github-token.server");
+  await requireAdmin(getStoredUser()?.login);
+
+  const { getServiceRoleClient } = await import("../supabase.server");
+  const db = getServiceRoleClient();
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+  const [{ data: users }, { data: usageTxns }] = await Promise.all([
+    db.from("user_credits").select("plan, balance, ai_credits_total"),
+    db
+      .from("credit_transactions")
+      .select("github_login, amount")
+      .eq("type", "usage")
+      .gte("created_at", monthStart),
+  ]);
+
+  const mrr = (users ?? []).reduce(
+    (sum, u) => sum + (PLANS[u.plan as keyof typeof PLANS]?.priceUsd ?? 0),
+    0,
+  );
+  const aiCreditsUsedMonth = (usageTxns ?? []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const estAiCost = estimateAiCost(aiCreditsUsedMonth);
+  const estMargin = Math.round((mrr - estAiCost) * 100) / 100;
+  const heavyUsers = (users ?? []).filter((u) => {
+    if (u.plan === "free" || u.ai_credits_total <= 0) return false;
+    const used = u.ai_credits_total - u.balance;
+    return used / u.ai_credits_total >= 0.8;
+  }).length;
+
+  const planEconomics = (["starter", "pro", "agency"] as const).map((planId) => {
+    const count = (users ?? []).filter((u) => u.plan === planId).length;
+    const plan = PLANS[planId];
+    const maxCost = estimateAiCost(plan.aiCreditsPerMonth);
+    return {
+      plan: plan.name,
+      users: count,
+      mrr: count * plan.priceUsd,
+      credits: plan.aiCreditsPerMonth,
+      maxCost,
+      marginIfMaxed: Math.round((plan.priceUsd - maxCost) * 100) / 100,
+      revPerCredit: Math.round(planRevenuePerCredit(planId) * 100) / 100,
+    };
+  });
+
+  return {
+    stats: {
+      mrr,
+      aiCreditsUsedMonth,
+      estAiCost,
+      estMargin,
+      heavyUsers,
+      costPerCredit: aiCostPerCredit(),
+      aiProvider: activeAiProvider(),
+    },
+    planEconomics,
+  };
+});
+
 export const loadAdminUsersFn = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
@@ -135,7 +181,38 @@ export const loadAdminUsersFn = createServerFn({ method: "GET" })
     query = query.range(from, to);
 
     const { data: users, count } = await query;
-    return { users: users ?? [], total: count ?? 0, page: data.page, pageSize };
+
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const logins = (users ?? []).map((u) => u.github_login);
+    let usageByLogin: Record<string, number> = {};
+    if (logins.length > 0) {
+      const { data: txns } = await db
+        .from("credit_transactions")
+        .select("github_login, amount")
+        .eq("type", "usage")
+        .gte("created_at", monthStart)
+        .in("github_login", logins);
+      for (const t of txns ?? []) {
+        usageByLogin[t.github_login] =
+          (usageByLogin[t.github_login] ?? 0) + Math.abs(t.amount);
+      }
+    }
+
+    const enriched = (users ?? []).map((u) => {
+      const used = usageByLogin[u.github_login] ?? 0;
+      const total = u.ai_credits_total ?? 0;
+      const planId = (u.plan as PlanId) ?? "free";
+      return {
+        ...u,
+        isBootstrapAdmin: isBootstrapAdmin(u.github_login),
+        aiUsedMonth: used,
+        aiUsagePct: total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0,
+        estCostMonth: estimateAiCost(used),
+        revPerCredit: planRevenuePerCredit(planId),
+      };
+    });
+
+    return { users: enriched, total: count ?? 0, page: data.page, pageSize };
   });
 
 export const loadAdminJobsFn = createServerFn({ method: "GET" })
@@ -168,6 +245,14 @@ export const loadAdminJobsFn = createServerFn({ method: "GET" })
     const { data: jobs, count } = await query;
     return { jobs: jobs ?? [], total: count ?? 0, page: data.page, pageSize };
   });
+
+function monthsSinceFirstSignup(earliestCreatedAt: string | null, now = new Date()): number {
+  if (!earliestCreatedAt) return 1;
+  const first = new Date(earliestCreatedAt);
+  return (
+    (now.getFullYear() - first.getFullYear()) * 12 + (now.getMonth() - first.getMonth()) + 1
+  );
+}
 
 export const loadAdminRevenueFn = createServerFn({ method: "GET" })
   .inputValidator(z.object({ months: z.number().default(24) }))
@@ -206,7 +291,18 @@ export const loadAdminRevenueFn = createServerFn({ method: "GET" })
     const mrrByMonth: { month: string; mrr: number }[] = [];
     const monthlyDetail: MonthRow[] = [];
 
-    for (let i = data.months - 1; i >= 0; i--) {
+    const earliestCreatedAt =
+      users && users.length > 0
+        ? users.reduce(
+            (min, u) => (u.created_at < min ? u.created_at : min),
+            users[0].created_at,
+          )
+        : null;
+    const historyMonths = monthsSinceFirstSignup(earliestCreatedAt);
+    const monthsToShow = Math.min(data.months, historyMonths);
+    const ledgerCapped = historyMonths > data.months;
+
+    for (let i = monthsToShow - 1; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -247,7 +343,7 @@ export const loadAdminRevenueFn = createServerFn({ method: "GET" })
         prev > 0 ? Math.round(((curr - prev) / prev) * 100) : curr > 0 ? 100 : 0;
     }
 
-    return { mrr, arr, planRevenue, mrrByMonth, monthlyDetail };
+    return { mrr, arr, planRevenue, mrrByMonth, monthlyDetail, ledgerCapped };
   });
 
 export const runPromotionFn = createServerFn({ method: "POST" })

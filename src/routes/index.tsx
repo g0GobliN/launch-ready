@@ -284,7 +284,7 @@ function Features() {
 function WhatWeCheck() {
   const checks = [
     "GitHub Actions CI workflow",
-    ".env.example and README setup section",
+    ".env.example with copy-paste setup steps",
     "Vitest + Playwright test scaffolding",
     "ESLint, Prettier, Dockerfile",
     "Sentry monitoring stub (frontend stacks)",
@@ -492,7 +492,7 @@ function FAQ() {
     },
     {
       q: "Does it work with Next.js, Vite, and Express?",
-      a: "Yes — those stacks get full framework-specific checks. Other JavaScript repos still get shared checks (CI, README, .env.example, Dockerfile, etc.).",
+      a: "Yes — those stacks get full framework-specific checks. Other JavaScript repos still get shared checks (CI, .env.example, setup docs, Dockerfile, etc.).",
     },
     {
       q: "Does the score mean my app is production ready?",

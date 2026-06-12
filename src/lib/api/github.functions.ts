@@ -21,6 +21,7 @@ import {
   computeDiffsFromFiles,
   collectFixFiles,
   type AiTestFile,
+  type VerificationNote,
 } from "../fix-executor.server";
 
 // Returns the GitHub OAuth URL — used by the Connect button in the browser.
@@ -291,12 +292,19 @@ async function runFixJob(
     type FixFile = { path: string; content: string };
     let files: FixFile[] | null = await getFixCache(db, repoId, fixIds);
     let aiFilesJson: string | null = null;
+    let verificationNotes: VerificationNote[] = [];
 
     if (files) {
       // Cache hit — still regenerate AI content if present (it may have changed)
       const aiFixIds = fixIds.filter((id) => AI_FIX_IDS.has(id));
       if (aiFixIds.length > 0) {
-        const rawAiFiles = await generateAiTests(scanId, aiFixIds, repoFullName, githubToken);
+        const rawAiFiles = await generateAiTests(
+          scanId,
+          aiFixIds,
+          repoFullName,
+          githubToken,
+          framework,
+        );
         const aiFiles = rawAiFiles.map((f) => ({ path: f.path, content: f.content }));
         aiFilesJson = JSON.stringify(aiFiles);
         const aiPaths = new Set(aiFiles.map((f) => f.path));
@@ -307,15 +315,23 @@ async function runFixJob(
       const aiFixIds = fixIds.filter((id) => AI_FIX_IDS.has(id));
       let aiFiles: AiTestFile[] | undefined;
       if (aiFixIds.length > 0) {
-        const rawAiFiles = await generateAiTests(scanId, aiFixIds, repoFullName, githubToken);
+        const rawAiFiles = await generateAiTests(
+          scanId,
+          aiFixIds,
+          repoFullName,
+          githubToken,
+          framework,
+        );
         aiFiles = rawAiFiles.map((f) => ({ path: f.path, content: f.content }));
         aiFilesJson = JSON.stringify(aiFiles);
       }
-      files = await collectFixFiles(githubToken, repoFullName, fixIds, {
+      const collectResult = await collectFixFiles(githubToken, repoFullName, fixIds, {
         framework,
         repoName,
         aiFiles,
       });
+      files = collectResult.files;
+      verificationNotes = collectResult.verificationNotes;
       // Persist for future jobs on this repo
       await setFixCache(db, repoId, fixIds, framework, files);
     }
@@ -328,6 +344,7 @@ async function runFixJob(
       branchName,
       fixIds,
       files,
+      verificationNotes,
     );
 
     await db
@@ -509,7 +526,7 @@ export const getFixPreviewFn = createServerFn({ method: "POST" })
     }
 
     // Cache miss — generate fresh and save
-    const files = await collectFixFiles(githubToken, repo.full_name, data.fixIds, {
+    const { files } = await collectFixFiles(githubToken, repo.full_name, data.fixIds, {
       framework: repo.framework ?? "unknown",
       repoName: repo.name,
     });

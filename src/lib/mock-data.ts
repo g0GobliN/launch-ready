@@ -153,7 +153,7 @@ const COMMON_ISSUES = (framework: Repo["framework"]): Issue[] => [
     id: "i-readme",
     fixId: "readme",
     category: "Documentation",
-    title: "README missing setup section",
+    title: "Missing setup instructions",
     severity: "medium",
     why: "Onboarding new devs (or your future self) takes hours without it.",
     timeSaved: "1h",
@@ -497,7 +497,7 @@ export const FIX_DETAILS: Record<string, FixPreview & { label: string }> = {
     ],
   },
   readme: {
-    label: "Add README setup section",
+    label: "Add setup instructions",
     files_added: [],
     files_changed: ["README.md"],
     deps: [],
@@ -689,10 +689,10 @@ export const FIX_DETAILS: Record<string, FixPreview & { label: string }> = {
   },
   "vitest-ai": {
     label: "Vitest — AI-generated tests",
-    files_added: ["tests/unit.test.ts"],
-    files_changed: [],
+    files_added: ["vitest.config.ts", "tests/unit.test.ts"],
+    files_changed: ["package.json"],
     deps: ["vitest", "@vitejs/plugin-react"],
-    creditCost: 2,
+    creditCost: 1,
     isAi: true,
     diffs: [
       {

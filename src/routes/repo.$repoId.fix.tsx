@@ -7,6 +7,7 @@ import { getUserPlanFn } from "@/lib/api/credits.functions";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { DiffView } from "@/components/diff-view";
 import { AI_FIX_COSTS, AI_FIX_IDS } from "@/lib/plans";
+import { expandBundledFixIds, isReadmeBundledWithEnvExample } from "@/lib/fix-bundling";
 import {
   ArrowLeft,
   Coins,
@@ -47,14 +48,22 @@ function FixPage() {
   const currentPlan = planData?.plan ?? "free";
   const canUseAiFixes = currentPlan !== "free";
   const scanFixIds = useMemo(() => new Set(scan.issues.map((i) => i.fixId)), [scan]);
+  const bundledReadme = isReadmeBundledWithEnvExample(scanFixIds);
   const availableFixes = useMemo(
-    () => Object.entries(FIX_DETAILS).filter(([id]) => scanFixIds.has(id)),
-    [scanFixIds],
+    () =>
+      Object.entries(FIX_DETAILS).filter(
+        ([id]) => scanFixIds.has(id) && !(bundledReadme && id === "readme"),
+      ),
+    [scanFixIds, bundledReadme],
   );
   const initial = fixes
     ? fixes.split(",").filter(Boolean)
     : availableFixes.slice(0, 4).map(([id]) => id);
   const [selected, setSelected] = useState<string[]>(initial);
+  const effectiveSelected = useMemo(
+    () => expandBundledFixIds(selected, scanFixIds),
+    [selected, scanFixIds],
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [upgradeModal, setUpgradeModal] = useState<"ai-fixes" | "credits" | null>(null);
@@ -68,7 +77,7 @@ function FixPage() {
     const changed = new Set<string>();
     const deps = new Set<string>();
     let credits = 0;
-    selected.forEach((id) => {
+    effectiveSelected.forEach((id) => {
       const f = FIX_DETAILS[id];
       if (!f) return;
       f.files_added.forEach((x) => added.add(x));
@@ -77,11 +86,11 @@ function FixPage() {
       credits += AI_FIX_IDS.has(id) ? (AI_FIX_COSTS[id] ?? 0) : 0;
     });
     return { added: [...added], changed: [...changed], deps: [...deps], credits };
-  }, [selected]);
+  }, [effectiveSelected]);
 
   // Real diffs fetched from the server — debounced so rapid checkbox clicks don't spam
   useEffect(() => {
-    if (selected.length === 0) {
+    if (effectiveSelected.length === 0) {
       setRealDiffs([]);
       return;
     }
@@ -89,7 +98,9 @@ function FixPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const diffs = await getFixPreviewFn({ data: { repoId: repo.id, fixIds: selected } });
+        const diffs = await getFixPreviewFn({
+          data: { repoId: repo.id, fixIds: effectiveSelected },
+        });
         setRealDiffs(diffs as FileDiff[]);
       } catch {
         setRealDiffs(null); // fall back to template diffs on error
@@ -100,17 +111,17 @@ function FixPage() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [selected, repo.id]);
+  }, [effectiveSelected, repo.id]);
 
   // Use real diffs when available, fall back to template diffs
   const displayDiffs: FileDiff[] = useMemo(() => {
     if (realDiffs !== null) return realDiffs;
     const diffs: FileDiff[] = [];
-    selected.forEach((id) => {
+    effectiveSelected.forEach((id) => {
       FIX_DETAILS[id]?.diffs.forEach((d) => diffs.push(d));
     });
     return diffs;
-  }, [realDiffs, selected]);
+  }, [realDiffs, effectiveSelected]);
 
   const branchName = `launchreadyy/production-ready-${new Date().toISOString().slice(0, 10)}`;
 
@@ -122,7 +133,7 @@ function FixPage() {
         data: {
           repoId: repo.id,
           scanId: scan.id,
-          fixes: selected.join(","),
+          fixes: effectiveSelected.join(","),
           branchName,
           estFilesAdded: preview.added.length,
           estFilesChanged: preview.changed.length,
@@ -216,7 +227,11 @@ function FixPage() {
                         className="h-4 w-4 accent-[color:var(--color-primary)]"
                       />
                     )}
-                    <span className="flex-1">{f.label}</span>
+                    <span className="flex-1">
+                      {id === "env-example" && bundledReadme
+                        ? "Add .env.example + setup docs"
+                        : f.label}
+                    </span>
                     {isAiFix ? (
                       <span
                         className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : "bg-accent/10 text-accent"}`}

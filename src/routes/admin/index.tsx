@@ -25,12 +25,14 @@ export const Route = createFileRoute("/admin/")({
 });
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "hsl(var(--card))",
-  border: "1px solid hsl(var(--border))",
+  backgroundColor: "var(--card)",
+  border: "1px solid var(--border)",
   borderRadius: "8px",
-  color: "hsl(var(--foreground))",
+  color: "var(--card-foreground)",
   fontSize: 13,
 };
+const TOOLTIP_ITEM_STYLE = { color: "var(--card-foreground)" };
+const TOOLTIP_LABEL_STYLE = { color: "var(--muted-foreground)" };
 
 const TICK = { fontSize: 12, fill: "#94a3b8" };
 const GRID_COLOR = "rgba(148,163,184,0.15)";
@@ -175,7 +177,11 @@ function AdminOverview() {
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
                 <XAxis dataKey="displayDate" tick={TICK} axisLine={false} tickLine={false} />
                 <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  itemStyle={TOOLTIP_ITEM_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
+                />
                 <Area
                   type="monotone"
                   dataKey="signups"
@@ -208,7 +214,11 @@ function AdminOverview() {
                     <Cell key={i} fill={e.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  itemStyle={TOOLTIP_ITEM_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
+                />
                 <Legend
                   iconType="circle"
                   iconSize={9}
@@ -229,7 +239,11 @@ function AdminOverview() {
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
                 <XAxis dataKey="displayDate" tick={TICK} axisLine={false} tickLine={false} />
                 <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  itemStyle={TOOLTIP_ITEM_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
+                />
                 <Bar dataKey="scans" fill="#22c55e" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -250,7 +264,11 @@ function AdminOverview() {
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
                 <XAxis dataKey="displayDate" tick={TICK} axisLine={false} tickLine={false} />
                 <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  itemStyle={TOOLTIP_ITEM_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
+                />
                 <Area
                   type="monotone"
                   dataKey="jobs"

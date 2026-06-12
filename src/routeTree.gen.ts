@@ -25,6 +25,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminRevenueRouteImport } from './routes/admin/revenue'
 import { Route as AdminPromotionsRouteImport } from './routes/admin/promotions'
 import { Route as AdminJobsRouteImport } from './routes/admin/jobs'
+import { Route as AdminEconomicsRouteImport } from './routes/admin/economics'
 import { Route as RepoRepoIdIndexRouteImport } from './routes/repo.$repoId.index'
 import { Route as RepoRepoIdArchRouteImport } from './routes/repo.$repoId_.arch'
 import { Route as RepoRepoIdFixRouteImport } from './routes/repo.$repoId.fix'
@@ -114,6 +115,11 @@ const AdminJobsRoute = AdminJobsRouteImport.update({
   path: '/jobs',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEconomicsRoute = AdminEconomicsRouteImport.update({
+  id: '/economics',
+  path: '/economics',
+  getParentRoute: () => AdminRoute,
+} as any)
 const RepoRepoIdIndexRoute = RepoRepoIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
+  '/admin/economics': typeof AdminEconomicsRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/promotions': typeof AdminPromotionsRoute
   '/admin/revenue': typeof AdminRevenueRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
+  '/admin/economics': typeof AdminEconomicsRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/promotions': typeof AdminPromotionsRoute
   '/admin/revenue': typeof AdminRevenueRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
+  '/admin/economics': typeof AdminEconomicsRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/promotions': typeof AdminPromotionsRoute
   '/admin/revenue': typeof AdminRevenueRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terms'
     | '/workflow'
+    | '/admin/economics'
     | '/admin/jobs'
     | '/admin/promotions'
     | '/admin/revenue'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terms'
     | '/workflow'
+    | '/admin/economics'
     | '/admin/jobs'
     | '/admin/promotions'
     | '/admin/revenue'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/terms'
     | '/workflow'
+    | '/admin/economics'
     | '/admin/jobs'
     | '/admin/promotions'
     | '/admin/revenue'
@@ -444,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminJobsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/economics': {
+      id: '/admin/economics'
+      path: '/economics'
+      fullPath: '/admin/economics'
+      preLoaderRoute: typeof AdminEconomicsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/repo/$repoId/': {
       id: '/repo/$repoId/'
       path: '/'
@@ -504,6 +523,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminEconomicsRoute: typeof AdminEconomicsRoute
   AdminJobsRoute: typeof AdminJobsRoute
   AdminPromotionsRoute: typeof AdminPromotionsRoute
   AdminRevenueRoute: typeof AdminRevenueRoute
@@ -512,6 +532,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminEconomicsRoute: AdminEconomicsRoute,
   AdminJobsRoute: AdminJobsRoute,
   AdminPromotionsRoute: AdminPromotionsRoute,
   AdminRevenueRoute: AdminRevenueRoute,

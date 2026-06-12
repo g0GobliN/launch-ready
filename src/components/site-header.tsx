@@ -3,13 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getSessionUserFn } from "@/lib/api/credits.functions";
 import { Settings, LayoutDashboard, ArrowLeft } from "lucide-react";
 
-const ADMINS = ((import.meta.env.VITE_ADMIN_GITHUB_LOGIN as string) ?? "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
 interface SiteHeaderProps {
-  user?: { login: string; avatarUrl: string } | null;
+  user?: { login: string; avatarUrl: string; isAdmin?: boolean } | null;
 }
 
 export function SiteHeader({ user: userProp }: SiteHeaderProps) {
@@ -18,7 +13,9 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
     queryFn: () => getSessionUserFn(),
     staleTime: Infinity,
   });
-  const user = userProp ?? sessionUser;
+  const user = userProp
+    ? { ...userProp, isAdmin: userProp.isAdmin ?? sessionUser?.isAdmin }
+    : sessionUser;
   const path = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = path.startsWith("/admin");
   const isApp =
@@ -122,7 +119,7 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
             </Link>
           ) : user ? (
             <div className="flex items-center gap-2">
-              {ADMINS.includes(user.login) && (
+              {user.isAdmin && (
                 <Link
                   to="/admin"
                   className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface hover:bg-muted transition"
