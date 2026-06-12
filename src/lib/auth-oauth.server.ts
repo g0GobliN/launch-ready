@@ -22,7 +22,6 @@ export async function getGitHubOAuthUrl() {
   const { appUrl } = getServerConfig();
   if (!appUrl) throw new Error("APP_URL is not configured");
 
-  // Clear stale Supabase session so the next OAuth flow can use a different GitHub account.
   await signOutAuth();
 
   const pendingCookies: CookieToSet[] = [];
@@ -30,7 +29,7 @@ export async function getGitHubOAuthUrl() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
-      scopes: "repo read:user",
+      scopes: "repo read:user user:email",
       redirectTo: `${appUrl}/api/auth/callback`,
       skipBrowserRedirect: true,
     },
@@ -47,7 +46,6 @@ export async function exchangeOAuthCode(code: string) {
   const supabase = createSupabaseServerClient({ collectCookies: pendingCookies });
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-  // Must run in the route loader request so Set-Cookie headers reach the browser.
   applyCookies(pendingCookies);
 
   if (error) return { error: error.message };
@@ -70,7 +68,6 @@ export async function exchangeOAuthCode(code: string) {
     email,
   });
 
-  // Persist email and detect new users
   if (login) {
     const { getServiceRoleClient } = await import("./supabase.server");
     const db = getServiceRoleClient();
@@ -87,7 +84,6 @@ export async function exchangeOAuthCode(code: string) {
       github_login: login,
       updated_at: new Date().toISOString(),
     };
-    // Only overwrite email if GitHub returned one and DB doesn't have one yet
     if (email && !existing?.email) upsertData.email = email;
     await db.from("user_credits").upsert(upsertData, { onConflict: "github_login" });
   }

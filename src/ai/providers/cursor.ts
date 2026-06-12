@@ -5,6 +5,14 @@ const DEFAULT_MODEL = "composer-2.5";
 const POLL_MS = 3_000;
 const MAX_WAIT_MS = 180_000;
 
+function buildModel(modelId: string): Record<string, unknown> {
+  const model: Record<string, unknown> = { id: modelId };
+  if (modelId.startsWith("composer")) {
+    model.params = [{ id: "fast", value: "true" }];
+  }
+  return model;
+}
+
 type RunStatus = "CREATING" | "RUNNING" | "FINISHED" | "ERROR" | "CANCELLED" | "EXPIRED";
 
 interface CreateAgentResponse {
@@ -32,11 +40,11 @@ function sleep(ms: number): Promise<void> {
 export class CursorProvider implements AIProvider {
   constructor(private readonly apiKey: string) {}
 
-  async generate(prompt: string, _maxTokens = 2048, repoUrl?: string): Promise<string> {
+  async generate(prompt: string, _maxTokens = 2048, repoUrl?: string, _model?: string): Promise<string> {
     return this.call(prompt, repoUrl);
   }
 
-  async analyze(prompt: string, _maxTokens = 1024, repoUrl?: string): Promise<string> {
+  async analyze(prompt: string, _maxTokens = 1024, repoUrl?: string, _model?: string): Promise<string> {
     return this.call(prompt, repoUrl);
   }
 
@@ -52,7 +60,7 @@ export class CursorProvider implements AIProvider {
 
     const body: Record<string, unknown> = {
       prompt: { text: prompt },
-      model: { id: modelId },
+      model: buildModel(modelId),
       autoCreatePR: false,
       skipReviewerRequest: true,
     };

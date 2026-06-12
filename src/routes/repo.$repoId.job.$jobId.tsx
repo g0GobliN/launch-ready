@@ -27,6 +27,7 @@ type FixRequestRow = Database["public"]["Tables"]["fix_requests"]["Row"];
 
 export const Route = createFileRoute("/repo/$repoId/job/$jobId")({
   head: () => ({ meta: [{ title: "Fix request — LaunchReadyy" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ from: (s.from as string) ?? "" }),
   component: JobPage,
   notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
   errorComponent: ({ error }) => (
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/repo/$repoId/job/$jobId")({
 function JobPage() {
   const { repo, job: initialJob } = Route.useLoaderData();
   const { jobId } = Route.useParams();
+  const { from } = Route.useSearch();
   const [job, setJob] = useState<FixRequestRow>(initialJob);
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -91,14 +93,23 @@ function JobPage() {
     <div className="min-h-screen">
       <SiteHeader />
       <div className="mx-auto max-w-3xl px-6 py-10">
-        <Link
-          to="/repo/$repoId/fix"
-          params={{ repoId: repo.id }}
-          search={{ fixes: "" }}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to fix preview
-        </Link>
+        {from === "jobs" ? (
+          <Link
+            to="/jobs"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to job history
+          </Link>
+        ) : (
+          <Link
+            to="/repo/$repoId/fix"
+            params={{ repoId: repo.id }}
+            search={{ fixes: "" }}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to fix preview
+          </Link>
+        )}
 
         <h1 className="mt-4 font-display text-2xl font-semibold">Fix request</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -174,10 +185,12 @@ function PendingView({
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
           <Coins className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">
-            {job.credits_cost} credit{job.credits_cost !== 1 ? "s" : ""}
+            {job.credits_cost === 0
+              ? "Free"
+              : `${job.credits_cost} credit${job.credits_cost !== 1 ? "s" : ""}`}
           </span>
           <span className="text-sm text-muted-foreground">
-            · {job.credits_cost} fix{job.credits_cost !== 1 ? "es" : ""} selected
+            · {fixLabels.length} fix{fixLabels.length !== 1 ? "es" : ""} selected
           </span>
         </div>
       </div>

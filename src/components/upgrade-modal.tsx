@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 interface UpgradeModalProps {
   open: boolean;
   onClose: () => void;
-  reason: "scan" | "repo" | "credits" | "arch" | "ai-fixes";
+  reason: "scan" | "repo" | "credits" | "arch" | "ai-fixes" | "report" | "team";
   currentPlan: PlanId;
 }
 
@@ -47,9 +47,22 @@ const REASON_COPY: Record<
     minPlan: "pro",
   },
   "ai-fixes": {
-    title: "AI fixes require Starter+",
-    description: "AI-generated test files and smart fixes are available from the Starter plan.",
+    title: "AI credits required",
+    description:
+      "You've used your trial credits. Upgrade to Starter for 15 AI credits/month — tailored CI, README, tests, and more.",
     minPlan: "starter",
+  },
+  report: {
+    title: "Advanced reports are Pro+",
+    description:
+      "Detailed scan reports with issue breakdowns and full PR history are available on the Pro plan and above.",
+    minPlan: "pro",
+  },
+  team: {
+    title: "Team Dashboard is Agency only",
+    description:
+      "See all your repositories, scan scores, and open fix PRs in one place with the Agency plan.",
+    minPlan: "agency",
   },
 };
 

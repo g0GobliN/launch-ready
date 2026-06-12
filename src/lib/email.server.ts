@@ -135,7 +135,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
   if (!resend) return;
   if (await isUnsubscribed(name)) return;
   const bodyHtml = `<h1 style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#111111">Welcome, ${name}</h1>
-       <p style="margin:0 0 12px;font-size:15px;color:#3f3f46;line-height:1.7">Your GitHub account is connected. You are on the Free plan — 1 repository and 3 scans per month.</p>
+       <p style="margin:0 0 12px;font-size:15px;color:#3f3f46;line-height:1.7">Your GitHub account is connected. You are on the Free plan — 1 repository, 3 scans per month, and 3 trial AI credits to try repo-specific fixes.</p>
        <p style="margin:0;font-size:15px;color:#3f3f46;line-height:1.7">Run your first scan and get a production-readiness score in seconds. Log in to get started.</p>`;
   const html = base(bodyHtml, name);
   await resend.emails.send({

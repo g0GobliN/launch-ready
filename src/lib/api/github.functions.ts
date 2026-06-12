@@ -14,6 +14,7 @@ import {
   checkPlanFeature,
 } from "../credits.server";
 import { AI_FIX_IDS, generateAiTests, hasAiTestCache } from "../ai-tests.server";
+import { defaultFixBranchName, sanitizeFixBranchName } from "../fix-branch";
 import { AI_FIX_COSTS, ARCH_SCAN_COST } from "../plans";
 import {
   createPRFromFiles,
@@ -158,7 +159,7 @@ const CreateFixRequestSchema = z.object({
   repoId: z.string(),
   scanId: z.string(),
   fixes: z.string(),
-  branchName: z.string(),
+  branchName: z.string().optional(),
   estFilesAdded: z.number(),
   estFilesChanged: z.number(),
   estDeps: z.number(),
@@ -177,16 +178,30 @@ export const createFixRequest = createServerFn({ method: "POST" })
 
     const db = getServiceRoleClient();
     const jobId = crypto.randomUUID();
+    const branchName = sanitizeFixBranchName(
+      data.branchName?.trim() || defaultFixBranchName(),
+    );
 
     // Compute server-side credit cost: template fixes = 0; AI fixes use per-fix cost from plans.ts.
-    // If a cache hit exists for the AI portion, AI cost is 0 (retry uses same result).
+    // Same-scan retry (user retrying a job they already paid for) = free.
+    // Cache hits from unchanged code still charge credits — cache is our cost saving, not the user's.
     const selectedFixes = data.fixes.split(",").filter(Boolean);
     const aiFixIds = selectedFixes.filter((id) => AI_FIX_IDS.has(id));
     let aiCost = aiFixIds.reduce((sum, id) => sum + (AI_FIX_COSTS[id] ?? 0), 0);
-    if (aiCost > 0 && (await hasAiTestCache(data.scanId, aiFixIds))) {
-      aiCost = 0; // cache hit — retry is free
+    if (aiCost > 0) {
+      const scanRetry = await hasAiTestCache(data.scanId, aiFixIds);
+      if (scanRetry) aiCost = 0; // same scan retry — already paid
     }
     const creditsCost = aiCost;
+
+    // Priority: 0=free, 1=starter, 2=pro, 3=agency — higher priority jobs run first
+    const { getUserPlanData } = await import("../credits.server");
+    const planData = await getUserPlanData(user.login).catch(() => null);
+    const PLAN_PRIORITY: Record<string, number> = { free: 0, starter: 1, pro: 2, agency: 3 };
+    const priority = PLAN_PRIORITY[planData?.plan ?? "free"] ?? 0;
+
+    // Deduct credits immediately — non-refundable even if user cancels
+    await deductCredits(user.login, creditsCost, jobId);
 
     const { error } = await db.from("fix_requests").insert({
       id: jobId,
@@ -194,12 +209,13 @@ export const createFixRequest = createServerFn({ method: "POST" })
       scan_id: data.scanId,
       fixes: data.fixes,
       status: "pending",
-      branch_name: data.branchName,
+      branch_name: branchName,
       est_files_added: data.estFilesAdded,
       est_files_changed: data.estFilesChanged,
       est_deps: data.estDeps,
       credits_cost: creditsCost,
       owner_login: user.login,
+      priority,
     });
 
     if (error) throw new Error(error.message);
@@ -211,7 +227,7 @@ export const createFixRequest = createServerFn({ method: "POST" })
 // ownerLogin + creditCost are passed so credits can be refunded on system error.
 // ─── Fix output cache ─────────────────────────────────────────────────────────
 
-const FIX_CACHE_TTL_DAYS = 7;
+const FIX_CACHE_TTL_DAYS = 1;
 type FixFile = { path: string; content: string };
 
 async function getFixCache(
@@ -274,7 +290,7 @@ async function runFixJob(
     const repoId = (jobMeta as { repo_id?: string } | null)?.repo_id ?? "";
     const branchName =
       (jobMeta as { branch_name?: string } | null)?.branch_name ??
-      `launchreadyy/fix-${jobId.slice(0, 8)}`;
+      defaultFixBranchName();
     const repoMeta = (
       jobMeta as {
         repos?: {
@@ -403,9 +419,6 @@ export const confirmFixRequest = createServerFn({ method: "POST" })
     if (error || !job) throw new Error("Job not found");
     if (job.status !== "pending") throw new Error("Job is not in pending state");
 
-    // Deduct credits before the job starts (throws if insufficient balance)
-    await deductCredits(user.login, job.credits_cost, data.jobId);
-
     await db
       .from("fix_requests")
       .update({
@@ -416,16 +429,25 @@ export const confirmFixRequest = createServerFn({ method: "POST" })
       .eq("id", data.jobId);
 
     const repoFullName = job.repos?.full_name ?? "";
+    if (!repoFullName) throw new Error("Repository not found for this job.");
+
+    const { assertGitHubRepoWriteAccess, probeGitHubGitWrite } = await import("../github.server");
+    await assertGitHubRepoWriteAccess(githubToken, repoFullName);
+    await probeGitHubGitWrite(githubToken, repoFullName);
+
     const fixIds = job.fixes.split(",").filter(Boolean);
-    // Fire and forget — does not block the response, survives browser close
-    void runFixJob(
-      data.jobId,
-      repoFullName,
-      user.login,
-      job.credits_cost,
-      fixIds,
-      job.scan_id,
-      githubToken,
+    // Keep running after response is sent — required in Cloudflare Workers (workerd)
+    const { cfWaitUntil } = await import("../cf-context.server");
+    cfWaitUntil(
+      runFixJob(
+        data.jobId,
+        repoFullName,
+        user.login,
+        job.credits_cost,
+        fixIds,
+        job.scan_id,
+        githubToken,
+      ),
     );
 
     return { jobId: data.jobId };
@@ -448,6 +470,14 @@ export const getFixRequestFn = createServerFn({ method: "GET" })
 export const loadDashboardFn = createServerFn({ method: "GET" }).handler(async () => {
   const { loadDashboardData } = await import("../dashboard.server");
   return loadDashboardData();
+});
+
+export const getAllJobsFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { getStoredUser } = await import("../github-token.server");
+  const user = getStoredUser();
+  if (!user) throw new Error("Not authenticated");
+  const { getAllFixRequests } = await import("../db.server");
+  return getAllFixRequests(user.login);
 });
 
 // ─── Architecture analysis ────────────────────────────────────────────────────
@@ -533,6 +563,108 @@ export const getFixPreviewFn = createServerFn({ method: "POST" })
     void setFixCache(db, data.repoId, data.fixIds, repo.framework ?? "unknown", files);
     return computeDiffsFromFiles(githubToken, repo.full_name, files);
   });
+
+// ─── Report page ──────────────────────────────────────────────────────────────
+
+// Returns all data needed to render the per-repo report page (Pro+).
+export const getReportFn = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ repoId: z.string() }))
+  .handler(async ({ data }) => {
+    const { getStoredUser } = await import("../github-token.server");
+    const user = getStoredUser();
+    if (!user) throw new Error("Not authenticated");
+
+    await checkPlanFeature(user.login, "pro");
+
+    const db = getServiceRoleClient();
+
+    const [repoRes, scanRes] = await Promise.all([
+      db.from("repos").select("*").eq("id", data.repoId).single(),
+      db
+        .from("scans")
+        .select("*")
+        .eq("repo_id", data.repoId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single(),
+    ]);
+
+    if (repoRes.error || !repoRes.data) throw new Error("Repo not found.");
+    if (scanRes.error || !scanRes.data) return { repo: repoRes.data, scan: null, issues: [], jobs: [], archScan: null };
+
+    const [issuesRes, jobsRes, archRes] = await Promise.all([
+      db.from("issues").select("*").eq("scan_id", scanRes.data.id),
+      db
+        .from("fix_requests")
+        .select("id, fixes, status, pr_url, pr_number, credits_cost, created_at")
+        .eq("scan_id", scanRes.data.id)
+        .order("created_at", { ascending: false }),
+      db.from("arch_scans").select("score, findings, scanned_files, created_at").eq("repo_id", data.repoId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+    return {
+      repo: repoRes.data,
+      scan: scanRes.data,
+      issues: issuesRes.data ?? [],
+      jobs: jobsRes.data ?? [],
+      archScan: archRes.data ?? null,
+    };
+  });
+
+// ─── Team dashboard ───────────────────────────────────────────────────────────
+
+// Returns all repos for the current user with their latest scan + job status (Agency only).
+export const getTeamDashboardFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { getStoredUser } = await import("../github-token.server");
+  const user = getStoredUser();
+  if (!user) throw new Error("Not authenticated");
+
+  await checkPlanFeature(user.login, "agency");
+
+  const db = getServiceRoleClient();
+
+  const { data: repos, error: reposErr } = await db
+    .from("repos")
+    .select("id, name, full_name, framework, language, stars, private")
+    .eq("owner", user.login)
+    .order("updated_at", { ascending: false });
+
+  if (reposErr) throw new Error(reposErr.message);
+  if (!repos || repos.length === 0) return { repos: [] };
+
+  const repoIds = repos.map((r) => r.id);
+
+  const [scansRes, jobsRes] = await Promise.all([
+    db
+      .from("scans")
+      .select("repo_id, score, created_at")
+      .in("repo_id", repoIds)
+      .order("created_at", { ascending: false }),
+    db
+      .from("fix_requests")
+      .select("repo_id, status, pr_url, pr_number, created_at")
+      .in("repo_id", repoIds)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const latestScan = new Map<string, { score: number; created_at: string }>();
+  for (const s of scansRes.data ?? []) {
+    if (!latestScan.has(s.repo_id)) latestScan.set(s.repo_id, { score: s.score, created_at: s.created_at });
+  }
+
+  const latestJob = new Map<string, { status: string; pr_url: string | null; pr_number: number | null }>();
+  for (const j of jobsRes.data ?? []) {
+    if (!latestJob.has(j.repo_id)) latestJob.set(j.repo_id, { status: j.status, pr_url: j.pr_url, pr_number: j.pr_number });
+  }
+
+  return {
+    repos: repos.map((r) => ({
+      ...r,
+      scan: latestScan.get(r.id) ?? null,
+      job: latestJob.get(r.id) ?? null,
+    })),
+  };
+});
 
 // Cancels a pending job.
 export const cancelFixRequest = createServerFn({ method: "POST" })

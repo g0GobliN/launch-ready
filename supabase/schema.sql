@@ -78,7 +78,7 @@ alter table fix_requests add column if not exists owner_login text;
 -- user_credits: one row per GitHub user, auto-provisioned on first use
 create table if not exists user_credits (
   github_login          text primary key,
-  balance               integer not null default 100,
+  balance               integer not null default 0,
   updated_at            timestamptz not null default now(),
   email_unsubscribed    boolean not null default false,
   email                 text,
@@ -104,14 +104,20 @@ create policy "public read credit_transactions" on credit_transactions for selec
 
 -- ai_test_cache: stores AI-generated test files keyed by scan + fix combination.
 -- A cache hit means the user is not charged again on retry.
+-- content_hash enables cross-repo reuse: repos with identical source files share results.
 create table if not exists ai_test_cache (
-  id         text primary key,
-  scan_id    text not null,
-  fix_ids    text not null,   -- sorted comma-separated AI fix IDs
-  result     text not null,   -- JSON: Array<{ fixId, path, content }>
-  created_at timestamptz not null default now(),
+  id           text primary key,
+  scan_id      text not null,
+  fix_ids      text not null,   -- sorted comma-separated AI fix IDs
+  result       text not null,   -- JSON: Array<{ fixId, path, content }>
+  content_hash text,            -- SHA-256 of relevant file contents + fix_ids; enables cross-repo cache hits
+  created_at   timestamptz not null default now(),
   unique (scan_id, fix_ids)
 );
+create index if not exists ai_test_cache_content_hash_idx on ai_test_cache (content_hash) where content_hash is not null;
+-- Migration for existing installs:
+alter table ai_test_cache add column if not exists content_hash text;
+create index if not exists ai_test_cache_content_hash_idx on ai_test_cache (content_hash) where content_hash is not null;
 
 alter table ai_test_cache enable row level security;
 create policy "public read ai_test_cache" on ai_test_cache for select using (true);
@@ -160,6 +166,11 @@ alter table user_credits add column if not exists created_at timestamptz not nul
 alter table user_credits add column if not exists stripe_customer_id text;
 alter table user_credits add column if not exists stripe_subscription_id text;
 alter table user_credits add column if not exists is_admin boolean not null default false;
+alter table user_credits add column if not exists trial_credits_total integer not null default 3;
+alter table user_credits add column if not exists trial_credits_used integer not null default 0;
+-- Grant trial credits to existing free users who never received them:
+-- update user_credits set balance = 3, ai_credits_total = 3, trial_credits_total = 3
+-- where plan = 'free' and trial_credits_used = 0 and balance = 0 and ai_credits_total = 0;
 
 -- ─── credit_transactions extras ───────────────────────────────────────────────
 alter table credit_transactions add column if not exists type text not null default 'usage';
@@ -178,3 +189,8 @@ create table if not exists promotions (
 
 alter table promotions enable row level security;
 create policy "public read promotions" on promotions for select using (true);
+
+-- ─── Priority queue ───────────────────────────────────────────────────────────
+-- 0=free, 1=starter, 2=pro, 3=agency — higher runs first when competing
+alter table fix_requests add column if not exists priority integer not null default 0;
+create index if not exists fix_requests_priority_idx on fix_requests (priority desc, created_at asc) where status = 'pending';

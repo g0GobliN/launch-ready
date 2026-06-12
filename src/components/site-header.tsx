@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getSessionUserFn } from "@/lib/api/credits.functions";
+import { getSessionUserFn, getUserPlanFn } from "@/lib/api/credits.functions";
 import { Settings, LayoutDashboard, ArrowLeft } from "lucide-react";
 
 interface SiteHeaderProps {
@@ -16,6 +16,13 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
   const user = userProp
     ? { ...userProp, isAdmin: userProp.isAdmin ?? sessionUser?.isAdmin }
     : sessionUser;
+  const { data: planData } = useQuery({
+    queryKey: ["user-plan"],
+    queryFn: () => getUserPlanFn(),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user,
+  });
+  const isAgency = planData?.plan === "agency";
   const path = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = path.startsWith("/admin");
   const isApp =
@@ -23,7 +30,9 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
     path.startsWith("/dashboard") ||
     path.startsWith("/repo") ||
     path.startsWith("/pr") ||
-    path.startsWith("/settings");
+    path.startsWith("/settings") ||
+    path.startsWith("/team") ||
+    path.startsWith("/jobs");
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -77,6 +86,15 @@ export function SiteHeader({ user: userProp }: SiteHeaderProps) {
             >
               Dashboard
             </Link>
+            {isAgency && (
+              <Link
+                to="/team"
+                className="hover:text-foreground"
+                activeProps={{ className: "text-foreground" }}
+              >
+                Team
+              </Link>
+            )}
             <Link
               to="/pricing"
               className="hover:text-foreground"

@@ -6,8 +6,14 @@ import { createFixRequest, getFixPreviewFn } from "@/lib/api/github.functions";
 import { getUserPlanFn } from "@/lib/api/credits.functions";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { DiffView } from "@/components/diff-view";
+import { defaultFixBranchName } from "@/lib/fix-branch";
 import { AI_FIX_COSTS, AI_FIX_IDS } from "@/lib/plans";
-import { expandBundledFixIds, isReadmeBundledWithEnvExample } from "@/lib/fix-bundling";
+import { Input } from "@/components/ui/input";
+import {
+  expandBundledFixIds,
+  isBundledReadmeFix,
+  isReadmeBundledWithEnvExample,
+} from "@/lib/fix-bundling";
 import {
   ArrowLeft,
   Coins,
@@ -18,6 +24,7 @@ import {
   Loader2,
   Package,
   ShieldCheck,
+  Sparkles,
   Lock,
 } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
@@ -46,15 +53,15 @@ function FixPage() {
   const { fixes } = Route.useSearch();
   const navigate = Route.useNavigate();
   const currentPlan = planData?.plan ?? "free";
-  const canUseAiFixes = currentPlan !== "free";
+  const creditBalance = planData?.balance ?? 0;
   const scanFixIds = useMemo(() => new Set(scan.issues.map((i) => i.fixId)), [scan]);
   const bundledReadme = isReadmeBundledWithEnvExample(scanFixIds);
   const availableFixes = useMemo(
     () =>
       Object.entries(FIX_DETAILS).filter(
-        ([id]) => scanFixIds.has(id) && !(bundledReadme && id === "readme"),
+        ([id]) => scanFixIds.has(id) && !isBundledReadmeFix(id, scanFixIds),
       ),
-    [scanFixIds, bundledReadme],
+    [scanFixIds],
   );
   const initial = fixes
     ? fixes.split(",").filter(Boolean)
@@ -64,6 +71,7 @@ function FixPage() {
     () => expandBundledFixIds(selected, scanFixIds),
     [selected, scanFixIds],
   );
+  const [branchName, setBranchName] = useState(defaultFixBranchName);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [upgradeModal, setUpgradeModal] = useState<"ai-fixes" | "credits" | null>(null);
@@ -113,17 +121,38 @@ function FixPage() {
     };
   }, [effectiveSelected, repo.id]);
 
-  // Use real diffs when available, fall back to template diffs
+  // Use real diffs when available, fall back to template diffs only when not loading.
+  // For AI fixes the server only returns the package.json change — supplement with
+  // mock diffs so users see the AI-generated file that will be created.
   const displayDiffs: FileDiff[] = useMemo(() => {
-    if (realDiffs !== null) return realDiffs;
+    if (diffsLoading) return [];
+    if (realDiffs !== null) {
+      const merged = [...realDiffs];
+      effectiveSelected.forEach((id) => {
+        if (!AI_FIX_IDS.has(id)) return;
+        FIX_DETAILS[id]?.diffs.forEach((d) => {
+          if (!merged.some((r) => r.path === d.path)) merged.push(d);
+        });
+      });
+      return merged;
+    }
     const diffs: FileDiff[] = [];
     effectiveSelected.forEach((id) => {
       FIX_DETAILS[id]?.diffs.forEach((d) => diffs.push(d));
     });
     return diffs;
-  }, [realDiffs, effectiveSelected]);
+  }, [realDiffs, diffsLoading, effectiveSelected]);
 
-  const branchName = `launchreadyy/production-ready-${new Date().toISOString().slice(0, 10)}`;
+  // Use real diff paths once loaded — show nothing while loading to avoid flicker
+  const fileListAdded = realDiffs !== null
+    ? [...new Set([
+        ...realDiffs.filter((d) => d.status === "added").map((d) => d.path),
+        ...effectiveSelected.flatMap((id) =>
+          AI_FIX_IDS.has(id) ? (FIX_DETAILS[id]?.files_added ?? []) : []
+        ),
+      ])]
+    : [];
+  const fileListChanged = realDiffs !== null ? realDiffs.filter((d) => d.status === "modified").map((d) => d.path) : [];
 
   const submit = async () => {
     setSubmitting(true);
@@ -141,7 +170,7 @@ function FixPage() {
           creditsCost: preview.credits,
         },
       });
-      navigate({ to: "/repo/$repoId/job/$jobId", params: { repoId: repo.id, jobId } });
+      navigate({ to: "/repo/$repoId/job/$jobId", params: { repoId: repo.id, jobId }, search: { from: "" } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to create job. Please try again.";
       if (msg.includes("Insufficient AI credits")) {
@@ -197,9 +226,9 @@ function FixPage() {
             <div className="mt-3 space-y-2">
               {availableFixes.map(([id, f]) => {
                 const isAiFix = AI_FIX_IDS.has(id);
-                const isLocked = isAiFix && !canUseAiFixes;
-                const isSel = selected.includes(id);
                 const fixCost = isAiFix ? (AI_FIX_COSTS[id] ?? 0) : 0;
+                const isLocked = isAiFix && creditBalance < fixCost;
+                const isSel = selected.includes(id);
                 return (
                   <label
                     key={id}
@@ -208,7 +237,7 @@ function FixPage() {
                       isLocked
                         ? (e) => {
                             e.preventDefault();
-                            setUpgradeModal("ai-fixes");
+                            setUpgradeModal(currentPlan === "free" ? "ai-fixes" : "credits");
                           }
                         : undefined
                     }
@@ -228,7 +257,7 @@ function FixPage() {
                       />
                     )}
                     <span className="flex-1">
-                      {id === "env-example" && bundledReadme
+                      {(id === "env-example" || id === "env-example-ai") && bundledReadme
                         ? "Add .env.example + setup docs"
                         : f.label}
                     </span>
@@ -249,25 +278,36 @@ function FixPage() {
           </div>
 
           <div className="space-y-5">
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="rounded-xl border border-border bg-card p-5 space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <GitBranch className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">Branch:</span>
-                <span className="font-mono">{branchName}</span>
+                <span className="font-medium">Branch name</span>
               </div>
+              <Input
+                value={branchName}
+                onChange={(e) => setBranchName(e.target.value)}
+                className="font-mono text-sm"
+                spellCheck={false}
+                aria-label="Pull request branch name"
+              />
+              <p className="text-xs text-muted-foreground">
+                Opens on a new branch — edit if you already used this name today.
+              </p>
             </div>
 
             <PreviewBlock
               icon={<FilePlus2 className="h-4 w-4 text-primary" />}
               title="Files added"
-              items={preview.added}
+              items={fileListAdded}
               mono
+              loading={diffsLoading}
             />
             <PreviewBlock
               icon={<FileEdit className="h-4 w-4 text-warning" />}
               title="Files changed"
-              items={preview.changed}
+              items={fileListChanged}
               mono
+              loading={diffsLoading}
             />
             <PreviewBlock
               icon={<Package className="h-4 w-4 text-accent" />}
@@ -296,12 +336,40 @@ function FixPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {displayDiffs.map((d, i) => (
-                    <DiffView key={`${d.path}-${i}`} diff={d} />
-                  ))}
+                  {displayDiffs.map((d, i) => {
+                    const isAiPlaceholder = effectiveSelected.some(
+                      (id) => AI_FIX_IDS.has(id) && FIX_DETAILS[id]?.ai_output_file === d.path,
+                    );
+                    if (isAiPlaceholder) {
+                      return (
+                        <div key={`${d.path}-${i}`} className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <code className="text-xs font-mono text-muted-foreground">{d.path}</code>
+                            <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">AI generated</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                            Claude will analyse your repo and write this file based on your actual code when you click <strong>Generate PR</strong>.
+                          </div>
+                        </div>
+                      );
+                    }
+                    return <DiffView key={`${d.path}-${i}`} diff={d} />;
+                  })}
                 </div>
               )}
             </div>
+
+            {effectiveSelected.includes("monitoring") && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                <p className="font-medium mb-1">⚠️ After merging this PR</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-xs">
+                  <li>Sign up at <a href="https://sentry.io" target="_blank" rel="noopener noreferrer" className="underline">sentry.io</a> (free)</li>
+                  <li>Create a project and copy your DSN</li>
+                  <li>Add <code className="font-mono bg-amber-500/20 px-1 rounded">{(repo.framework === "React Vite" || repo.framework === "Vite" || repo.framework === "React") ? "VITE_SENTRY_DSN" : "SENTRY_DSN"}</code> to your environment variables</li>
+                </ol>
+              </div>
+            )}
 
             {submitError && (
               <div className="rounded-md border border-critical/30 bg-critical/10 px-4 py-2.5 text-sm text-critical">
@@ -311,7 +379,7 @@ function FixPage() {
             <div className="sticky bottom-4 flex items-center justify-between rounded-xl border border-primary/30 bg-card/90 p-4 backdrop-blur glow-primary">
               <div className="flex items-center gap-3">
                 <div className="text-sm text-muted-foreground">
-                  {preview.added.length} added · {preview.changed.length} changed ·{" "}
+                  {fileListAdded.length} added · {fileListChanged.length} changed ·{" "}
                   {preview.deps.length} dep{preview.deps.length !== 1 ? "s" : ""}
                 </div>
                 <div className="hidden items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-xs sm:flex">
@@ -349,20 +417,30 @@ function PreviewBlock({
   title,
   items,
   mono,
+  loading,
 }: {
   icon: React.ReactNode;
   title: string;
   items: string[];
   mono?: boolean;
+  loading?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center gap-2">
         {icon}
         <h3 className="font-display text-sm font-semibold">{title}</h3>
-        <span className="ml-auto text-xs text-muted-foreground">{items.length}</span>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : items.length}
+        </span>
       </div>
-      {items.length === 0 ? (
+      {loading ? (
+        <div className="mt-3 space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-7 rounded-md bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="mt-3 text-sm text-muted-foreground">Nothing in this category.</div>
       ) : (
         <ul

@@ -2,8 +2,9 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { getRepoFn, getScanFn } from "@/lib/api/db.functions";
 import { ScoreRing, SeverityBadge } from "@/components/ui-bits";
-import { ArrowRight, BrainCircuit, Clock, Github, Info, AlertTriangle } from "lucide-react";
+import { ArrowRight, BrainCircuit, Clock, Github, Info, AlertTriangle, BarChart2 } from "lucide-react";
 import { SEVERITY_WEIGHT } from "@/lib/scanner-rules";
+import { isReadmeBundledWithEnvExample } from "@/lib/fix-bundling";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/repo/$repoId/")({
@@ -33,9 +34,16 @@ function RepoPage() {
 
   const categories = useMemo(() => {
     if (!scan) return {};
+    const scanFixIds = new Set(scan.issues.map((i) => i.fixId));
+    const bundledReadme = isReadmeBundledWithEnvExample(scanFixIds);
     const by: Record<string, typeof scan.issues> = {};
     scan.issues.forEach((i: (typeof scan.issues)[number]) => {
-      (by[i.category] ||= []).push(i);
+      if (bundledReadme && i.fixId === "readme") return;
+      const issue =
+        bundledReadme && i.fixId === "env-example"
+          ? { ...i, title: "Missing .env.example + setup docs" }
+          : i;
+      (by[issue.category] ||= []).push(issue);
     });
     return by;
   }, [scan]);
@@ -110,7 +118,7 @@ function RepoPage() {
               <Row k="Framework" v={repo.framework} />
               <Row k="Language" v={repo.language} />
               <Row k="Visibility" v={repo.private ? "Private" : "Public"} />
-              <Row k="Issues" v={`${scan.issues.length} found`} />
+              <Row k="Issues" v={`${Object.values(categories).flat().length} found`} />
             </div>
             <div className="mt-6 rounded-lg border border-border bg-surface p-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
@@ -124,6 +132,16 @@ function RepoPage() {
             >
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <BrainCircuit className="h-3.5 w-3.5 text-accent" /> Architecture analysis
+              </span>
+              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
+            <Link
+              to="/repo/$repoId/report"
+              params={{ repoId: repo.id }}
+              className="mt-2 flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 text-xs hover:bg-muted transition"
+            >
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <BarChart2 className="h-3.5 w-3.5 text-accent" /> Advanced report
               </span>
               <ArrowRight className="h-3 w-3 text-muted-foreground" />
             </Link>

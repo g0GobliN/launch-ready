@@ -409,7 +409,9 @@ function RepoList({
                 {/* Repo limit */}
                 <div className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-2 text-xs">
                   <span className="text-muted-foreground">Repositories</span>
-                  <span className="font-medium">Up to {planDef.repos}</span>
+                  <span className="font-medium">
+                    {planDef.repos < 0 ? "Unlimited" : `Up to ${planDef.repos}`}
+                  </span>
                 </div>
               </div>
 
@@ -492,15 +494,22 @@ function RepoList({
                 <div className="flex items-center gap-2">
                   <BriefcaseIcon className="h-4 w-4 text-primary" />
                   <h3 className="font-display text-sm font-semibold">Job history</h3>
+                  <Link
+                    to="/jobs"
+                    className="ml-auto text-xs text-primary hover:underline"
+                  >
+                    View all →
+                  </Link>
                 </div>
                 <div className="mt-3 space-y-2">
-                  {recentJobs.map((job) => {
+                  {recentJobs.slice(0, 3).map((job) => {
                     const cfg = JOB_STATUS_LABELS[job.status] ?? JOB_STATUS_LABELS.cancelled;
                     return (
                       <Link
                         key={job.id}
                         to="/repo/$repoId/job/$jobId"
                         params={{ repoId: job.repoId, jobId: job.id }}
+                        search={{ from: "" }}
                         className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-2 text-sm transition hover:bg-muted"
                       >
                         <div className="min-w-0">

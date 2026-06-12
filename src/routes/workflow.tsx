@@ -257,7 +257,7 @@ function WorkflowPage() {
                 {[
                   {
                     icon: <GitBranch className="h-4 w-4 text-primary" />,
-                    text: "A new branch named launchreadyy/production-ready-YYYY-MM-DD — never touching main.",
+                    text: "A new branch (e.g. launchreadyy-production-ready-YYYY-MM-DD) — never touching main.",
                   },
                   {
                     icon: <GitPullRequest className="h-4 w-4 text-primary" />,

@@ -181,7 +181,9 @@ function SettingsPage() {
             )}
             <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-2.5 text-sm">
               <span className="text-muted-foreground">Repositories</span>
-              <span className="font-medium">Up to {planDef.repos}</span>
+              <span className="font-medium">
+                {planDef.repos < 0 ? "Unlimited" : `Up to ${planDef.repos}`}
+              </span>
             </div>
           </div>
 

@@ -22,11 +22,11 @@ export const Route = createFileRoute("/pricing")({
 });
 
 const FEATURE_ROWS = [
-  { label: "Repositories", free: "1", starter: "3", pro: "10", agency: "50" },
+  { label: "Repositories", free: "1", starter: "Unlimited", pro: "Unlimited", agency: "Unlimited" },
   { label: "Scans / month", free: "3", starter: "20", pro: "100", agency: "500" },
-  { label: "AI credits / month", free: "—", starter: "10", pro: "50", agency: "250" },
+  { label: "AI credits", free: "3 trial", starter: "15 / mo", pro: "60 / mo", agency: "200 / mo" },
   { label: "Template fixes", free: "✓", starter: "✓", pro: "✓", agency: "✓" },
-  { label: "AI-generated fixes", free: "—", starter: "✓", pro: "✓", agency: "✓" },
+  { label: "AI-generated fixes", free: "Trial", starter: "✓", pro: "✓", agency: "✓" },
   { label: "Architecture analysis", free: "—", starter: "—", pro: "✓", agency: "✓" },
   { label: "Job history", free: "—", starter: "✓", pro: "✓", agency: "✓" },
   { label: "Advanced reports", free: "—", starter: "—", pro: "✓", agency: "✓" },
@@ -161,14 +161,18 @@ function PricingPage() {
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: "GitHub Actions CI", cost: 0 },
-              { label: "Setup instructions (README)", cost: 0 },
+              { label: "GitHub Actions CI (template)", cost: 0 },
+              { label: "Setup instructions (template)", cost: 0 },
+              { label: ".env.example (template)", cost: 0 },
+              { label: "CI workflow — AI-tailored", cost: 1 },
+              { label: "README setup — AI-written", cost: 1 },
+              { label: ".env.example — AI-scanned", cost: 1 },
               { label: "ESLint config", cost: 0 },
               { label: "Express security (Helmet + rate limit)", cost: 0 },
               { label: "Express logging (Winston)", cost: 0 },
-              { label: "Vitest test generation", cost: 1 },
-              { label: "Playwright E2E tests", cost: 2 },
-              { label: "API route tests", cost: 2 },
+              { label: "Vitest test generation", cost: 2 },
+              { label: "Playwright E2E tests", cost: 3 },
+              { label: "API route tests", cost: 3 },
               { label: "Architecture analysis", cost: 3 },
             ].map(({ label, cost }) => (
               <div

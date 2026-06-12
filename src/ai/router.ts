@@ -51,36 +51,70 @@ function getProvider(name: string): AIProvider {
 
 // ─── Task → provider routing ──────────────────────────────────────────────────
 
-// Phase 1: everything goes to DeepSeek.
-//
-// Phase 2 routing (uncomment when AI_PROVIDER=claude is active):
-//   architecture_analysis    → Claude
-//   refactoring_suggestions  → Claude
-//   vitest_generation        → DeepSeek
-//   playwright_generation    → DeepSeek
-//   api_test_generation      → DeepSeek
-//   readme_improvements      → DeepSeek
+const FAST_GENERATION_TASKS = new Set<TaskType>([
+  "vitest_generation",
+  "playwright_generation",
+  "api_test_generation",
+  "readme_improvements",
+  "ci_generation",
+  "env_example_generation",
+]);
 
-function selectProviderName(_ctx: RouterContext): string {
+const SIMPLE_FILL_TASKS = new Set<TaskType>([
+  "readme_improvements",
+  "ci_generation",
+  "env_example_generation",
+]);
+
+const HAIKU_MODEL = process.env.CLAUDE_FAST_MODEL ?? "claude-haiku-4-5-20251001";
+const SONNET_MODEL = process.env.CLAUDE_MODEL ?? "claude-sonnet-4-6";
+
+function hasProviderKey(name: string): boolean {
+  switch (name) {
+    case "deepseek":
+      return Boolean(process.env.DEEPSEEK_API_KEY);
+    case "claude":
+      return Boolean(process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY);
+    case "openai":
+      return Boolean(process.env.OPENAI_API_KEY);
+    case "gemini":
+      return Boolean(process.env.GEMINI_API_KEY);
+    case "cursor":
+      return Boolean(process.env.CURSOR_API_KEY);
+    default:
+      return false;
+  }
+}
+
+// Cloud Agents need minutes to boot; chat APIs finish test generation in seconds.
+function fastGenerationProvider(): string {
+  if (hasProviderKey("claude")) return "claude";
+  if (hasProviderKey("deepseek")) return "deepseek";
+  if (hasProviderKey("openai")) return "openai";
+  throw new Error(
+    "AI test generation needs a chat provider (Claude/DeepSeek/OpenAI). " +
+      "Set ANTHROPIC_API_KEY or DEEPSEEK_API_KEY.",
+  );
+}
+
+function selectProviderName(ctx: RouterContext): string {
   const configured = (process.env.AI_PROVIDER ?? "deepseek").toLowerCase();
 
-  // When a specific provider is forced via env, honour it for all tasks.
-  if (configured !== "deepseek") return configured;
-
-  // Phase 1: route everything to DeepSeek.
-  switch (_ctx.taskType as TaskType) {
-    default:
-      return "deepseek";
+  if (configured === "cursor" && FAST_GENERATION_TASKS.has(ctx.taskType)) {
+    return fastGenerationProvider();
   }
 
-  // ── Phase 2 example (uncomment to enable) ──────────────────────────────────
-  // switch (_ctx.taskType) {
-  //   case "architecture_analysis":
-  //   case "refactoring_suggestions":
-  //     return "claude";
-  //   default:
-  //     return "deepseek";
-  // }
+  if (FAST_GENERATION_TASKS.has(ctx.taskType)) {
+    return fastGenerationProvider();
+  }
+
+  if (configured !== "deepseek") return configured;
+  return "deepseek";
+}
+
+function selectModel(providerName: string, taskType: TaskType): string | undefined {
+  if (providerName !== "claude") return undefined;
+  return SIMPLE_FILL_TASKS.has(taskType) ? HAIKU_MODEL : SONNET_MODEL;
 }
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
@@ -95,8 +129,8 @@ function djb2(str: string): string {
   return (hash >>> 0).toString(36);
 }
 
-function buildCacheKey(providerName: string, method: string, prompt: string): string {
-  return `${providerName}:${method}:${djb2(prompt)}`;
+function buildCacheKey(providerName: string, method: string, prompt: string, model?: string): string {
+  return `${providerName}:${model ?? "default"}:${method}:${djb2(prompt)}`;
 }
 
 // ─── Public router ────────────────────────────────────────────────────────────
@@ -112,7 +146,8 @@ export async function route(
   repoUrl?: string,
 ): Promise<string> {
   const providerName = selectProviderName(ctx);
-  const cacheKey = explicitCacheKey ?? buildCacheKey(providerName, method, prompt);
+  const model = selectModel(providerName, ctx.taskType);
+  const cacheKey = explicitCacheKey ?? buildCacheKey(providerName, method, prompt, model);
 
   const cached = responseCache.get(cacheKey);
   if (cached !== undefined) return cached;
@@ -120,8 +155,8 @@ export async function route(
   const provider = getProvider(providerName);
   const result =
     method === "analyze"
-      ? await provider.analyze(prompt, maxTokens, repoUrl)
-      : await provider.generate(prompt, maxTokens, repoUrl);
+      ? await provider.analyze(prompt, maxTokens, repoUrl, model)
+      : await provider.generate(prompt, maxTokens, repoUrl, model);
 
   responseCache.set(cacheKey, result);
   return result;

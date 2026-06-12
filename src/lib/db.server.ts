@@ -158,6 +158,27 @@ export async function getRecentFixRequests(
   }));
 }
 
+export async function getAllFixRequests(
+  owner: string,
+): Promise<Array<FixRequest & { repoFullName: string }>> {
+  const { data: repos } = await supabase.from("repos").select("id").eq("owner", owner);
+  const repoIds = ((repos ?? []) as Array<{ id: string }>).map((r) => r.id);
+  if (repoIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("fix_requests")
+    .select("*, repos(full_name)")
+    .in("repo_id", repoIds)
+    .order("created_at", { ascending: false })
+    .returns<Array<FixRequestRow & { repos: { full_name: string } | null }>>();
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((r) => ({
+    ...toFixRequest(r),
+    repoFullName: r.repos?.full_name ?? "unknown",
+  }));
+}
+
 export async function getRecentScans(
   owner?: string,
 ): Promise<Array<{ repo: string; score: number; when: string }>> {

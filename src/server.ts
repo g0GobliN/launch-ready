@@ -449,6 +449,9 @@ async function handleUnsubscribe(request: Request): Promise<Response> {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const { runWithCfContext } = await import("./lib/cf-context.server");
+    const cfCtx = ctx as { waitUntil: (p: Promise<unknown>) => void };
+    return runWithCfContext({ waitUntil: cfCtx.waitUntil.bind(cfCtx) }, async () => {
     const url = new URL(request.url);
 
     // Intercept Stripe webhook before TanStack SSR
@@ -485,5 +488,6 @@ export default {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
+    }); // end runWithCfContext
   },
 };

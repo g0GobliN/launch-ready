@@ -8,16 +8,16 @@ const ANTHROPIC_VERSION = "2023-06-01";
 export class ClaudeProvider implements AIProvider {
   constructor(private readonly apiKey: string) {}
 
-  async generate(prompt: string, maxTokens = 2048, _repoUrl?: string): Promise<string> {
-    return this.call(prompt, maxTokens);
+  async generate(prompt: string, maxTokens = 2048, _repoUrl?: string, model?: string): Promise<string> {
+    return this.call(prompt, maxTokens, model);
   }
 
-  async analyze(prompt: string, maxTokens = 1024, _repoUrl?: string): Promise<string> {
-    return this.call(prompt, maxTokens);
+  async analyze(prompt: string, maxTokens = 1024, _repoUrl?: string, model?: string): Promise<string> {
+    return this.call(prompt, maxTokens, model);
   }
 
-  private async call(prompt: string, maxTokens: number): Promise<string> {
-    const model = process.env.CLAUDE_MODEL ?? DEFAULT_MODEL;
+  private async call(prompt: string, maxTokens: number, modelOverride?: string): Promise<string> {
+    const model = modelOverride ?? process.env.CLAUDE_MODEL ?? DEFAULT_MODEL;
 
     const res = await fetch(ANTHROPIC_API, {
       method: "POST",

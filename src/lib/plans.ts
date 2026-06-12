@@ -1,5 +1,8 @@
 export type PlanId = "free" | "starter" | "pro" | "agency";
 
+/** Paid plans use -1 for unlimited repositories. */
+export const UNLIMITED_REPOS = -1;
+
 export interface Plan {
   id: PlanId;
   name: string;
@@ -7,6 +10,8 @@ export interface Plan {
   repos: number;
   scansPerMonth: number;
   aiCreditsPerMonth: number;
+  /** One-time trial credits on signup (free only). */
+  trialCredits?: number;
   features: string[];
   highlighted?: boolean;
 }
@@ -19,19 +24,26 @@ export const PLANS: Record<PlanId, Plan> = {
     repos: 1,
     scansPerMonth: 3,
     aiCreditsPerMonth: 0,
-    features: ["1 repository", "3 scans / month", "Template fixes only", "Community support"],
+    trialCredits: 3,
+    features: [
+      "1 repository",
+      "3 scans / month",
+      "3 trial AI credits (one-time)",
+      "Unlimited template fixes",
+      "Community support",
+    ],
   },
   starter: {
     id: "starter",
     name: "Starter",
     priceUsd: 9.8,
-    repos: 3,
+    repos: UNLIMITED_REPOS,
     scansPerMonth: 20,
-    aiCreditsPerMonth: 10,
+    aiCreditsPerMonth: 15,
     features: [
-      "3 repositories",
+      "Unlimited repositories",
       "20 scans / month",
-      "10 AI credits / month",
+      "15 AI credits / month",
       "Unlimited template fixes",
       "Job history",
     ],
@@ -41,13 +53,13 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "pro",
     name: "Pro",
     priceUsd: 19.8,
-    repos: 10,
+    repos: UNLIMITED_REPOS,
     scansPerMonth: 100,
-    aiCreditsPerMonth: 50,
+    aiCreditsPerMonth: 60,
     features: [
-      "10 repositories",
+      "Unlimited repositories",
       "100 scans / month",
-      "50 AI credits / month",
+      "60 AI credits / month",
       "Architecture analysis",
       "Advanced reports",
       "Priority queue",
@@ -56,14 +68,14 @@ export const PLANS: Record<PlanId, Plan> = {
   agency: {
     id: "agency",
     name: "Agency",
-    priceUsd: 49.8,
-    repos: 50,
+    priceUsd: 78.8,
+    repos: UNLIMITED_REPOS,
     scansPerMonth: 500,
-    aiCreditsPerMonth: 250,
+    aiCreditsPerMonth: 200,
     features: [
-      "50 repositories",
+      "Unlimited repositories",
       "500 scans / month",
-      "250 AI credits / month",
+      "200 AI credits / month",
       "Team dashboard",
       "Priority processing",
       "Reports",
@@ -73,9 +85,12 @@ export const PLANS: Record<PlanId, Plan> = {
 
 // Per AI-fix credit costs
 export const AI_FIX_COSTS: Record<string, number> = {
-  "vitest-ai": 1,
-  "playwright-ai": 2,
-  "api-tests": 2,
+  "ci-ai": 1,
+  "readme-ai": 1,
+  "env-example-ai": 1,
+  "vitest-ai": 2,
+  "playwright-ai": 3,
+  "api-tests": 3,
 };
 
 // Fix IDs that trigger AI generation (safe to import client-side)
@@ -88,4 +103,12 @@ export const PLAN_ORDER: PlanId[] = ["free", "starter", "pro", "agency"];
 
 export function planAllows(userPlan: PlanId, minPlan: PlanId): boolean {
   return PLAN_ORDER.indexOf(userPlan) >= PLAN_ORDER.indexOf(minPlan);
+}
+
+export function formatRepoLimit(repos: number): string {
+  return repos < 0 ? "Unlimited" : String(repos);
+}
+
+export function isUnlimitedRepos(repos: number): boolean {
+  return repos < 0;
 }

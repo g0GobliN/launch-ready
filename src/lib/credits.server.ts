@@ -1,11 +1,13 @@
 import { formatDistanceToNow } from "date-fns";
 import { getServiceRoleClient } from "./supabase.server";
-import { PLANS, type PlanId, planAllows } from "./plans";
+import { PLANS, type PlanId, planAllows, isUnlimitedRepos } from "./plans";
 
 export interface UserPlanData {
   plan: PlanId;
   balance: number;
   aiCreditsTotal: number;
+  trialCreditsTotal: number;
+  trialCreditsUsed: number;
   monthlyScanLimit: number;
   monthlyScanUsed: number;
   currentPeriodEnd: string;
@@ -15,6 +17,7 @@ export interface UserPlanData {
 }
 
 const LOW_CREDITS_THRESHOLD = 3;
+const FREE_TRIAL_CREDITS = PLANS.free.trialCredits ?? 3;
 
 export interface CreditTransaction {
   id: string;
@@ -32,11 +35,13 @@ async function ensurePlanRow(login: string): Promise<void> {
   await db.from("user_credits").upsert(
     {
       github_login: login,
-      balance: 0,
+      balance: FREE_TRIAL_CREDITS,
       plan: "free",
       monthly_scan_limit: PLANS.free.scansPerMonth,
       monthly_scan_used: 0,
-      ai_credits_total: 0,
+      ai_credits_total: FREE_TRIAL_CREDITS,
+      trial_credits_total: FREE_TRIAL_CREDITS,
+      trial_credits_used: 0,
       current_period_start: now.toISOString(),
       current_period_end: periodEnd.toISOString(),
       updated_at: now.toISOString(),
@@ -90,6 +95,8 @@ export async function getUserPlanData(login: string): Promise<UserPlanData> {
       plan: "free",
       balance: 0,
       aiCreditsTotal: 0,
+      trialCreditsTotal: FREE_TRIAL_CREDITS,
+      trialCreditsUsed: 0,
       monthlyScanLimit: 3,
       monthlyScanUsed: 0,
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -102,6 +109,8 @@ export async function getUserPlanData(login: string): Promise<UserPlanData> {
     plan: data.plan as PlanId,
     balance: data.balance,
     aiCreditsTotal: data.ai_credits_total,
+    trialCreditsTotal: data.trial_credits_total ?? FREE_TRIAL_CREDITS,
+    trialCreditsUsed: data.trial_credits_used ?? 0,
     monthlyScanLimit: data.monthly_scan_limit,
     monthlyScanUsed: data.monthly_scan_used,
     currentPeriodEnd: data.current_period_end,
@@ -156,6 +165,8 @@ export async function checkRepoLimit(login: string): Promise<void> {
     .eq("github_login", login)
     .single();
   const plan = PLANS[(planRow?.plan as PlanId) ?? "free"];
+  if (isUnlimitedRepos(plan.repos)) return;
+
   const { count } = await db
     .from("repos")
     .select("*", { count: "exact", head: true })
@@ -192,15 +203,26 @@ export async function deductCredits(login: string, amount: number, jobId: string
   const db = getServiceRoleClient();
   const { data } = await db
     .from("user_credits")
-    .select("balance")
+    .select("balance, plan, trial_credits_used, trial_credits_total")
     .eq("github_login", login)
     .single();
   if (!data || data.balance < amount)
     throw new Error("Insufficient AI credits. Please upgrade your plan.");
   const newBalance = data.balance - amount;
+  const trialUsed =
+    data.plan === "free"
+      ? Math.min(
+          data.trial_credits_total ?? FREE_TRIAL_CREDITS,
+          (data.trial_credits_used ?? 0) + amount,
+        )
+      : undefined;
   await db
     .from("user_credits")
-    .update({ balance: newBalance, updated_at: new Date().toISOString() })
+    .update({
+      balance: newBalance,
+      updated_at: new Date().toISOString(),
+      ...(trialUsed !== undefined ? { trial_credits_used: trialUsed } : {}),
+    })
     .eq("github_login", login);
   if (newBalance <= LOW_CREDITS_THRESHOLD) {
     const { data: row } = await db
@@ -233,13 +255,19 @@ export async function refundCredits(login: string, amount: number, jobId: string
   const db = getServiceRoleClient();
   const { data } = await db
     .from("user_credits")
-    .select("balance")
+    .select("balance, plan, trial_credits_used")
     .eq("github_login", login)
     .single();
   if (!data) return;
+  const trialUsed =
+    data.plan === "free" ? Math.max(0, (data.trial_credits_used ?? 0) - amount) : undefined;
   await db
     .from("user_credits")
-    .update({ balance: data.balance + amount, updated_at: new Date().toISOString() })
+    .update({
+      balance: data.balance + amount,
+      updated_at: new Date().toISOString(),
+      ...(trialUsed !== undefined ? { trial_credits_used: trialUsed } : {}),
+    })
     .eq("github_login", login);
   await db.from("credit_transactions").insert({
     id: crypto.randomUUID(),

@@ -48,44 +48,53 @@ export function isSupportedFramework(framework: string): boolean {
   return ["Next.js", "Vite", "React", "Express"].includes(framework);
 }
 
-export function checkCI(files: string[], issues: IssueInput[]) {
+export function checkCI(files: string[], issues: IssueInput[], fixId = "github-actions") {
   const hasCI = files.some(
     (f) => f.startsWith(".github/workflows/") && (f.endsWith(".yml") || f.endsWith(".yaml")),
   );
   if (!hasCI) {
+    const isAi = fixId === "ci-ai";
     issues.push({
       category: "CI/CD",
-      title: "No GitHub Actions CI workflow",
+      title: isAi ? "No CI workflow (AI-tailored fix available)" : "No GitHub Actions CI workflow",
       severity: "critical",
-      why: "Every push should automatically run lint, typecheck, and tests. Without CI, bugs reach main undetected.",
+      why: isAi
+        ? "Every push should run lint, typecheck, and tests. AI generates a workflow tailored to your framework and scripts."
+        : "Every push should automatically run lint, typecheck, and tests. Without CI, bugs reach main undetected.",
       timeSaved: "2h",
-      fixId: "github-actions",
+      fixId,
     });
   }
 }
 
-export function checkEnvExample(envExists: boolean, issues: IssueInput[]) {
+export function checkEnvExample(envExists: boolean, issues: IssueInput[], fixId = "env-example") {
   if (!envExists) {
+    const isAi = fixId === "env-example-ai";
     issues.push({
       category: "Security",
-      title: "Missing .env.example",
+      title: isAi ? "Missing .env.example (AI-scanned fix available)" : "Missing .env.example",
       severity: "high",
-      why: "Contributors can't run your app without knowing which env vars are required. .env.example documents them safely.",
+      why: isAi
+        ? "AI scans your codebase for env vars and writes a documented .env.example with descriptions."
+        : "Contributors can't run your app without knowing which env vars are required. .env.example documents them safely.",
       timeSaved: "30m",
-      fixId: "env-example",
+      fixId,
     });
   }
 }
 
-export function checkReadme(readme: string | null, issues: IssueInput[]) {
+export function checkReadme(readme: string | null, issues: IssueInput[], fixId = "readme") {
   if (!hasReadmeSetupSection(readme)) {
+    const isAi = fixId === "readme-ai";
     issues.push({
       category: "Documentation",
-      title: "Missing setup instructions",
+      title: isAi ? "Missing setup instructions (AI-written fix available)" : "Missing setup instructions",
       severity: "medium",
-      why: "New contributors can't clone, install, and run the project without a setup section.",
+      why: isAi
+        ? "AI writes setup docs using your actual repo name, stack, and npm scripts so new contributors can run the project immediately."
+        : "New contributors can't clone, install, and run the project without a setup section.",
       timeSaved: "1h",
-      fixId: "readme",
+      fixId,
     });
   }
 }
@@ -138,16 +147,44 @@ export function checkDockerfile(files: string[], issues: IssueInput[]) {
   }
 }
 
+export interface NonJsManifests {
+  requirements?: string | null;
+  gemfile?: string | null;
+  goMod?: string | null;
+  composerJson?: string | null;
+  cargoToml?: string | null;
+  pomXml?: string | null;
+}
+
+export function detectLanguage(files: string[]): string {
+  if (files.some((f) => f === "go.mod")) return "Go";
+  if (files.some((f) => f === "Gemfile")) return "Ruby";
+  if (files.some((f) => f === "requirements.txt" || f === "pyproject.toml" || f === "setup.py"))
+    return "Python";
+  if (files.some((f) => f === "pom.xml" || f === "build.gradle" || f === "build.gradle.kts"))
+    return "Java";
+  if (files.some((f) => f === "composer.json")) return "PHP";
+  if (files.some((f) => f === "Cargo.toml")) return "Rust";
+  return "unknown";
+}
+
 export function checkMonitoring(
   deps: Record<string, string>,
   files: string[],
   issues: IssueInput[],
+  manifests?: NonJsManifests,
 ) {
   const hasSentry =
     deps["@sentry/react"] ||
     deps["@sentry/nextjs"] ||
     deps["@sentry/node"] ||
-    files.some((f) => /sentry/i.test(f));
+    files.some((f) => /sentry/i.test(f)) ||
+    (manifests?.requirements && /sentry.sdk/i.test(manifests.requirements)) ||
+    (manifests?.gemfile && /sentry-ruby|sentry-rails/i.test(manifests.gemfile)) ||
+    (manifests?.goMod && /getsentry\/sentry-go/.test(manifests.goMod)) ||
+    (manifests?.composerJson && /sentry\/sentry/.test(manifests.composerJson)) ||
+    (manifests?.cargoToml && /^\s*sentry\s*=/m.test(manifests.cargoToml)) ||
+    (manifests?.pomXml && /io\.sentry/.test(manifests.pomXml));
   if (!hasSentry) {
     issues.push({
       category: "Monitoring",

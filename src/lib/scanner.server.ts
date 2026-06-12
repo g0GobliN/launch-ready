@@ -1,5 +1,6 @@
 import {
   type IssueInput,
+  type NonJsManifests,
   README_PATHS,
   calcScore,
   checkCI,
@@ -14,6 +15,7 @@ import {
   checkVite,
   dedupeIssues,
   detectFramework,
+  detectLanguage,
   isSupportedFramework,
 } from "./scanner-rules";
 
@@ -94,9 +96,24 @@ export async function scanRepository(
     ...(pkg.devDependencies as Record<string, string> | undefined),
   };
   const scripts = (pkg.scripts as Record<string, string> | undefined) ?? {};
-  const framework = detectFramework(pkg);
   const files = tree.paths;
+  const jsFramework = detectFramework(pkg);
+  const framework = jsFramework !== "unknown" ? jsFramework : detectLanguage(files);
   const warnings: string[] = [];
+
+  // Fetch non-JS manifests in parallel for Sentry detection
+  const isNonJs = !pkgRaw && framework !== "unknown";
+  const [requirements, gemfile, goMod, composerJson, cargoToml, pomXml] = isNonJs
+    ? await Promise.all([
+        fetchFileContent(token, fullName, "requirements.txt").catch(() => null),
+        fetchFileContent(token, fullName, "Gemfile").catch(() => null),
+        fetchFileContent(token, fullName, "go.mod").catch(() => null),
+        fetchFileContent(token, fullName, "composer.json").catch(() => null),
+        fetchFileContent(token, fullName, "Cargo.toml").catch(() => null),
+        fetchFileContent(token, fullName, "pom.xml").catch(() => null),
+      ])
+    : [null, null, null, null, null, null];
+  const nonJsManifests: NonJsManifests = { requirements, gemfile, goMod, composerJson, cargoToml, pomXml };
 
   if (tree.truncated) {
     warnings.push(
@@ -115,10 +132,11 @@ export async function scanRepository(
   }
 
   const issues: IssueInput[] = [];
+  const useAiFixes = Boolean(pkgRaw) && isSupportedFramework(jsFramework);
 
-  checkCI(files, issues);
-  checkEnvExample(envExampleRaw !== null, issues);
-  checkReadme(readmeRaw, issues);
+  checkCI(files, issues, useAiFixes ? "ci-ai" : "github-actions");
+  checkEnvExample(envExampleRaw !== null, issues, useAiFixes ? "env-example-ai" : "env-example");
+  checkReadme(readmeRaw, issues, useAiFixes ? "readme-ai" : "readme");
   if (pkgRaw) {
     checkTestScript(scripts, issues);
     checkLintScript(scripts, issues);
@@ -133,8 +151,12 @@ export async function scanRepository(
     checkMonitoring(deps, files, issues);
   } else if (framework === "Express") {
     checkExpress(deps, issues);
+    checkMonitoring(deps, files, issues);
   } else if (pkgRaw) {
     checkMonitoring(deps, files, issues);
+  } else if (framework !== "unknown") {
+    // Non-JS language detected — run monitoring check with manifest content
+    checkMonitoring({}, files, issues, nonJsManifests);
   }
 
   const unique = dedupeIssues(issues);

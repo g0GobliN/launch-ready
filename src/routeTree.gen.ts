@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkflowRouteImport } from './routes/workflow'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TeamRouteImport } from './routes/team'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -27,6 +29,7 @@ import { Route as AdminPromotionsRouteImport } from './routes/admin/promotions'
 import { Route as AdminJobsRouteImport } from './routes/admin/jobs'
 import { Route as AdminEconomicsRouteImport } from './routes/admin/economics'
 import { Route as RepoRepoIdIndexRouteImport } from './routes/repo.$repoId.index'
+import { Route as RepoRepoIdReportRouteImport } from './routes/repo.$repoId_.report'
 import { Route as RepoRepoIdArchRouteImport } from './routes/repo.$repoId_.arch'
 import { Route as RepoRepoIdFixRouteImport } from './routes/repo.$repoId.fix'
 import { Route as ApiStripeSuccessRouteImport } from './routes/api/stripe/success'
@@ -45,6 +48,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -58,6 +66,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JobsRoute = JobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoRoute = DemoRouteImport.update({
@@ -125,6 +138,11 @@ const RepoRepoIdIndexRoute = RepoRepoIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => RepoRepoIdRoute,
 } as any)
+const RepoRepoIdReportRoute = RepoRepoIdReportRouteImport.update({
+  id: '/repo/$repoId_/report',
+  path: '/repo/$repoId/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RepoRepoIdArchRoute = RepoRepoIdArchRouteImport.update({
   id: '/repo/$repoId_/arch',
   path: '/repo/$repoId/arch',
@@ -166,9 +184,11 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/demo': typeof DemoRoute
+  '/jobs': typeof JobsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/team': typeof TeamRoute
   '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
   '/admin/economics': typeof AdminEconomicsRoute
@@ -185,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/api/stripe/success': typeof ApiStripeSuccessRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
   '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
+  '/repo/$repoId/report': typeof RepoRepoIdReportRoute
   '/repo/$repoId/': typeof RepoRepoIdIndexRoute
   '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
@@ -192,9 +213,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/demo': typeof DemoRoute
+  '/jobs': typeof JobsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/team': typeof TeamRoute
   '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
   '/admin/economics': typeof AdminEconomicsRoute
@@ -210,6 +233,7 @@ export interface FileRoutesByTo {
   '/api/stripe/success': typeof ApiStripeSuccessRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
   '/repo/$repoId/arch': typeof RepoRepoIdArchRoute
+  '/repo/$repoId/report': typeof RepoRepoIdReportRoute
   '/repo/$repoId': typeof RepoRepoIdIndexRoute
   '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
@@ -219,9 +243,11 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/demo': typeof DemoRoute
+  '/jobs': typeof JobsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/team': typeof TeamRoute
   '/terms': typeof TermsRoute
   '/workflow': typeof WorkflowRoute
   '/admin/economics': typeof AdminEconomicsRoute
@@ -238,6 +264,7 @@ export interface FileRoutesById {
   '/api/stripe/success': typeof ApiStripeSuccessRoute
   '/repo/$repoId/fix': typeof RepoRepoIdFixRoute
   '/repo/$repoId_/arch': typeof RepoRepoIdArchRoute
+  '/repo/$repoId_/report': typeof RepoRepoIdReportRoute
   '/repo/$repoId/': typeof RepoRepoIdIndexRoute
   '/repo/$repoId/job/$jobId': typeof RepoRepoIdJobJobIdRoute
 }
@@ -248,9 +275,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/demo'
+    | '/jobs'
     | '/pricing'
     | '/privacy'
     | '/settings'
+    | '/team'
     | '/terms'
     | '/workflow'
     | '/admin/economics'
@@ -267,6 +296,7 @@ export interface FileRouteTypes {
     | '/api/stripe/success'
     | '/repo/$repoId/fix'
     | '/repo/$repoId/arch'
+    | '/repo/$repoId/report'
     | '/repo/$repoId/'
     | '/repo/$repoId/job/$jobId'
   fileRoutesByTo: FileRoutesByTo
@@ -274,9 +304,11 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/demo'
+    | '/jobs'
     | '/pricing'
     | '/privacy'
     | '/settings'
+    | '/team'
     | '/terms'
     | '/workflow'
     | '/admin/economics'
@@ -292,6 +324,7 @@ export interface FileRouteTypes {
     | '/api/stripe/success'
     | '/repo/$repoId/fix'
     | '/repo/$repoId/arch'
+    | '/repo/$repoId/report'
     | '/repo/$repoId'
     | '/repo/$repoId/job/$jobId'
   id:
@@ -300,9 +333,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/demo'
+    | '/jobs'
     | '/pricing'
     | '/privacy'
     | '/settings'
+    | '/team'
     | '/terms'
     | '/workflow'
     | '/admin/economics'
@@ -319,6 +354,7 @@ export interface FileRouteTypes {
     | '/api/stripe/success'
     | '/repo/$repoId/fix'
     | '/repo/$repoId_/arch'
+    | '/repo/$repoId_/report'
     | '/repo/$repoId/'
     | '/repo/$repoId/job/$jobId'
   fileRoutesById: FileRoutesById
@@ -328,9 +364,11 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DemoRoute: typeof DemoRoute
+  JobsRoute: typeof JobsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
+  TeamRoute: typeof TeamRoute
   TermsRoute: typeof TermsRoute
   WorkflowRoute: typeof WorkflowRoute
   PrRepoIdRoute: typeof PrRepoIdRoute
@@ -340,6 +378,7 @@ export interface RootRouteChildren {
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiStripeSuccessRoute: typeof ApiStripeSuccessRoute
   RepoRepoIdArchRoute: typeof RepoRepoIdArchRoute
+  RepoRepoIdReportRoute: typeof RepoRepoIdReportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -356,6 +395,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -377,6 +423,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jobs': {
+      id: '/jobs'
+      path: '/jobs'
+      fullPath: '/jobs'
+      preLoaderRoute: typeof JobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo': {
@@ -469,6 +522,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/repo/$repoId/'
       preLoaderRoute: typeof RepoRepoIdIndexRouteImport
       parentRoute: typeof RepoRepoIdRoute
+    }
+    '/repo/$repoId_/report': {
+      id: '/repo/$repoId_/report'
+      path: '/repo/$repoId/report'
+      fullPath: '/repo/$repoId/report'
+      preLoaderRoute: typeof RepoRepoIdReportRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/repo/$repoId_/arch': {
       id: '/repo/$repoId_/arch'
@@ -563,9 +623,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DemoRoute: DemoRoute,
+  JobsRoute: JobsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
+  TeamRoute: TeamRoute,
   TermsRoute: TermsRoute,
   WorkflowRoute: WorkflowRoute,
   PrRepoIdRoute: PrRepoIdRoute,
@@ -575,6 +637,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiStripeSuccessRoute: ApiStripeSuccessRoute,
   RepoRepoIdArchRoute: RepoRepoIdArchRoute,
+  RepoRepoIdReportRoute: RepoRepoIdReportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

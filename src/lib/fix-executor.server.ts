@@ -2,6 +2,7 @@
 // Replaces the fake sleep + random PR number in runFixJob.
 
 import { buildReadmeSections } from "./readme-setup";
+import { githubContentsPath, githubHeadRefPath } from "./github.server";
 
 const GITHUB_API = "https://api.github.com";
 
@@ -25,7 +26,34 @@ async function ghGet<T>(token: string, path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function ghPost<T>(token: string, path: string, body: unknown): Promise<T> {
+function gitWriteHint(
+  status: number,
+  path: string,
+  scopes: string | null,
+  committedCount = 0,
+): string {
+  if (status !== 404) return "";
+  if (!path.includes("/git/") && !path.includes("/contents/")) return "";
+  const scopeNote = scopes ? ` OAuth scopes: ${scopes}.` : "";
+  const hasRepo = scopes?.split(",").some((s) => s.trim() === "repo");
+  if (hasRepo || committedCount > 0) {
+    return (
+      " GitHub rejected this write — check nested file paths or whether the branch has a partial commit." +
+      scopeNote
+    );
+  }
+  return (
+    " This usually means your GitHub token lacks write access — sign out and reconnect " +
+    `with the "repo" scope.${scopeNote}`
+  );
+}
+
+async function ghPost<T>(
+  token: string,
+  path: string,
+  body: unknown,
+  opts?: { committedCount?: number },
+): Promise<T> {
   const res = await fetch(`${GITHUB_API}${path}`, {
     method: "POST",
     headers: ghHeaders(token),
@@ -33,7 +61,37 @@ async function ghPost<T>(token: string, path: string, body: unknown): Promise<T>
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`GitHub POST ${path} → ${res.status}: ${text.slice(0, 300)}`);
+    const hint = gitWriteHint(
+      res.status,
+      path,
+      res.headers.get("x-oauth-scopes"),
+      opts?.committedCount,
+    );
+    throw new Error(`GitHub POST ${path} → ${res.status}: ${text.slice(0, 300)}${hint}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function ghPut<T>(
+  token: string,
+  path: string,
+  body: unknown,
+  opts?: { committedCount?: number },
+): Promise<T> {
+  const res = await fetch(`${GITHUB_API}${path}`, {
+    method: "PUT",
+    headers: ghHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const hint = gitWriteHint(
+      res.status,
+      path,
+      res.headers.get("x-oauth-scopes"),
+      opts?.committedCount,
+    );
+    throw new Error(`GitHub PUT ${path} → ${res.status}: ${text.slice(0, 300)}${hint}`);
   }
   return res.json() as Promise<T>;
 }
@@ -51,24 +109,42 @@ async function ghPatch<T>(token: string, path: string, body: unknown): Promise<T
   return res.json() as Promise<T>;
 }
 
-async function fetchFileContent(
+function contentsApiPath(filePath: string): string {
+  return githubContentsPath(filePath);
+}
+
+function headRefPath(fullName: string, branchName: string): string {
+  return githubHeadRefPath(fullName, branchName);
+}
+
+async function ensureBranch(
   token: string,
   fullName: string,
-  path: string,
-): Promise<string | null> {
-  try {
-    const data = await ghGet<{ content?: string; encoding?: string }>(
-      token,
-      `/repos/${fullName}/contents/${encodeURIComponent(path)}`,
+  branchName: string,
+  baseSha: string,
+): Promise<void> {
+  const refPath = headRefPath(fullName, branchName);
+  const checkRes = await fetch(`${GITHUB_API}${refPath}`, { headers: ghHeaders(token) });
+  if (checkRes.ok) return;
+  if (checkRes.status !== 404) {
+    const text = await checkRes.text().catch(() => "");
+    throw new Error(
+      `Cannot access branch ${branchName} on ${fullName} (${checkRes.status}): ${text.slice(0, 200)}`,
     );
-    if (!data.content || data.encoding !== "base64") return null;
-    return Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf-8");
-  } catch {
-    return null;
+  }
+  await ghPost(token, `/repos/${fullName}/git/refs`, {
+    ref: `refs/heads/${branchName}`,
+    sha: baseSha,
+  });
+  const verify = await fetch(`${GITHUB_API}${refPath}`, { headers: ghHeaders(token) });
+  if (!verify.ok) {
+    throw new Error(
+      `Failed to create branch ${branchName} on ${fullName} — cannot commit files without it.`,
+    );
   }
 }
 
-// ─── GitHub Trees API ─────────────────────────────────────────────────────────
+// ─── Git Trees API (primary — atomic single commit) ───────────────────────────
 
 async function createBlob(token: string, fullName: string, content: string): Promise<string> {
   const data = await ghPost<{ sha: string }>(token, `/repos/${fullName}/git/blobs`, {
@@ -84,7 +160,6 @@ async function createTree(
   baseTreeSha: string,
   files: { path: string; content: string }[],
 ): Promise<string> {
-  // Create blobs in parallel then build the tree in one API call
   const entries = await Promise.all(
     files.map(async (f) => ({
       path: f.path,
@@ -121,7 +196,7 @@ async function createOrUpdateBranch(
   branchName: string,
   commitSha: string,
 ): Promise<void> {
-  const refPath = `/repos/${fullName}/git/refs/heads/${branchName}`;
+  const refPath = headRefPath(fullName, branchName);
   const checkRes = await fetch(`${GITHUB_API}${refPath}`, { headers: ghHeaders(token) });
   if (checkRes.ok) {
     await ghPatch(token, refPath, { sha: commitSha, force: true });
@@ -130,6 +205,76 @@ async function createOrUpdateBranch(
       ref: `refs/heads/${branchName}`,
       sha: commitSha,
     });
+  }
+}
+
+/** Contents API fallback — one commit per file; used only if Trees API fails. */
+async function commitFilesViaContentsApi(
+  token: string,
+  fullName: string,
+  branchName: string,
+  files: { path: string; content: string }[],
+  commitMessage: string,
+): Promise<void> {
+  let committedCount = 0;
+  for (const file of files) {
+    const path = file.path.replace(/^\/+/, "");
+    const apiPath = `/repos/${fullName}/contents/${contentsApiPath(path)}`;
+
+    let sha: string | undefined;
+    try {
+      const existing = await ghGet<{ sha: string }>(
+        token,
+        `${apiPath}?ref=${encodeURIComponent(branchName)}`,
+      );
+      sha = existing.sha;
+    } catch {
+      // new file
+    }
+
+    try {
+      await ghPut(
+        token,
+        apiPath,
+        {
+          message: commitMessage,
+          content: Buffer.from(file.content, "utf8").toString("base64"),
+          branch: branchName,
+          ...(sha ? { sha } : {}),
+        },
+        { committedCount },
+      );
+      committedCount++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("404") && msg.includes("/contents/")) {
+        const partial =
+          committedCount > 0
+            ? ` Branch ${branchName} may have a partial commit (${committedCount} file(s) written).`
+            : "";
+        throw new Error(
+          `Failed writing ${path} on branch ${branchName}.${partial} ${msg}`,
+        );
+      }
+      throw err;
+    }
+  }
+}
+
+async function fetchFileContent(
+  token: string,
+  fullName: string,
+  path: string,
+): Promise<string | null> {
+  try {
+    const data = await ghGet<{ content?: string; encoding?: string }>(
+      token,
+      `/repos/${fullName}/contents/${contentsApiPath(path)}`,
+    );
+    if (!data.content || data.encoding !== "base64") return null;
+    return Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf-8");
+  } catch {
+    return null;
   }
 }
 
@@ -250,6 +395,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      exclude: ["node_modules", "dist", "e2e", "**/*.config.*", "**/*.d.ts"],
+    },
   },
 });
 `;
@@ -292,16 +442,25 @@ function ciWorkflow(nodeVersion: string): string {
 
 on:
   push:
+    branches: [main, master, develop]
   pull_request:
 
+env:
+  NODE_VERSION: '${nodeVersion}'
+
 jobs:
-  ci:
+  # ── 1. Install & cache node_modules ─────────────────────────────────────
+  install:
+    name: Install
     runs-on: ubuntu-latest
+    outputs:
+      pm:  \${{ steps.pm.outputs.name }}
+      run: \${{ steps.pm.outputs.run }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect package manager
-        id: pm
+      - id: pm
+        name: Detect package manager
         run: |
           if [ -f pnpm-lock.yaml ]; then
             echo "name=pnpm"                              >> $GITHUB_OUTPUT
@@ -317,44 +476,110 @@ jobs:
             echo "run=npm run"                            >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup pnpm
-        if: steps.pm.outputs.name == 'pnpm'
+      - if: steps.pm.outputs.name == 'pnpm'
         uses: pnpm/action-setup@v4
         with:
           run_install: false
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${nodeVersion}
+          node-version: \${{ env.NODE_VERSION }}
           cache: \${{ steps.pm.outputs.name }}
 
-      - name: Install dependencies
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-\${{ runner.os }}-\${{ hashFiles('**/package-lock.json','**/pnpm-lock.yaml','**/yarn.lock') }}
+          restore-keys: nm-\${{ runner.os }}-
+
+      - if: steps.cache.outputs.cache-hit != 'true'
         run: \${{ steps.pm.outputs.install }}
 
-      - name: Check scripts
-        id: scripts
+  # ── 2a. Lint + Typecheck (parallel with test) ────────────────────────────
+  check:
+    name: Lint & Typecheck
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - if: needs.install.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: \${{ env.NODE_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-\${{ runner.os }}-\${{ hashFiles('**/package-lock.json','**/pnpm-lock.yaml','**/yarn.lock') }}
+      - id: s
         run: |
           has() { node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)"; }
           has lint      && echo "lint=true"      >> $GITHUB_OUTPUT || echo "lint=false"      >> $GITHUB_OUTPUT
           has typecheck && echo "typecheck=true" >> $GITHUB_OUTPUT || echo "typecheck=false" >> $GITHUB_OUTPUT
-          has test      && echo "test=true"      >> $GITHUB_OUTPUT || echo "test=false"      >> $GITHUB_OUTPUT
-          has build     && echo "build=true"     >> $GITHUB_OUTPUT || echo "build=false"     >> $GITHUB_OUTPUT
+      - if: steps.s.outputs.lint == 'true'
+        run: \${{ needs.install.outputs.run }} lint
+      - if: steps.s.outputs.typecheck == 'true'
+        run: \${{ needs.install.outputs.run }} typecheck
 
-      - name: Lint
-        if: steps.scripts.outputs.lint == 'true'
-        run: \${{ steps.pm.outputs.run }} lint
+  # ── 2b. Test (parallel with check) ──────────────────────────────────────
+  test:
+    name: Test
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - if: needs.install.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: \${{ env.NODE_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-\${{ runner.os }}-\${{ hashFiles('**/package-lock.json','**/pnpm-lock.yaml','**/yarn.lock') }}
+      - id: s
+        run: |
+          has() { node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)"; }
+          has test && echo "test=true" >> $GITHUB_OUTPUT || echo "test=false" >> $GITHUB_OUTPUT
+      - if: steps.s.outputs.test == 'true'
+        run: \${{ needs.install.outputs.run }} test
 
-      - name: Typecheck
-        if: steps.scripts.outputs.typecheck == 'true'
-        run: \${{ steps.pm.outputs.run }} typecheck
-
-      - name: Test
-        if: steps.scripts.outputs.test == 'true'
-        run: \${{ steps.pm.outputs.run }} test
-
-      - name: Build
-        if: steps.scripts.outputs.build == 'true'
-        run: \${{ steps.pm.outputs.run }} build
+  # ── 3. Build (after check + test pass) ──────────────────────────────────
+  build:
+    name: Build
+    needs: [install, check, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - if: needs.install.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: \${{ env.NODE_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-\${{ runner.os }}-\${{ hashFiles('**/package-lock.json','**/pnpm-lock.yaml','**/yarn.lock') }}
+      - id: s
+        run: |
+          has() { node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)"; }
+          has build && echo "build=true" >> $GITHUB_OUTPUT || echo "build=false" >> $GITHUB_OUTPUT
+      - if: steps.s.outputs.build == 'true'
+        run: \${{ needs.install.outputs.run }} build
+      - if: steps.s.outputs.build == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: dist
+          retention-days: 7
+          if-no-files-found: ignore
 `;
 }
 
@@ -365,6 +590,12 @@ export default [{
   files: ["**/*.{ts,tsx}"],
   languageOptions: { parser },
   plugins: { "@typescript-eslint": tseslint },
+  rules: {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+    "no-console": ["warn", { allow: ["warn", "error"] }],
+    eqeqeq: ["error", "always"],
+  },
 }];
 `;
 
@@ -390,25 +621,46 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:20-alpine AS runner
 WORKDIR /app
-COPY --from=build /app ./
+ENV NODE_ENV=production
+# Non-root user for security
+RUN addgroup -S app && adduser -S app -G app
+COPY --from=build /app/package*.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/dist ./dist
+USER app
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:3000/health || exit 1
 CMD ["npm", "start"]
 `;
 
 const DOCKER_IGNORE = `node_modules
 .git
 .env
+.env.*
 dist
 build
+coverage
+tests
+e2e
+.github
 *.log
+*.md
+Dockerfile*
 `;
+
 
 const VITEST_CONFIG_NODE = `import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     globals: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      exclude: ["node_modules", "dist", "**/*.config.*", "**/*.d.ts"],
+    },
   },
 });
 `;
@@ -427,10 +679,14 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Non-root user for security
+RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+USER nextjs
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:3000/api/health || exit 1
 CMD ["node", "server.js"]
 `;
 
@@ -442,8 +698,13 @@ COPY . .
 RUN npm run build
 
 FROM nginx:alpine
+# Non-root nginx
+RUN addgroup -S web && adduser -S web -G web
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN chown -R web:web /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx/conf.d
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost/ || exit 1
 CMD ["nginx", "-g", "daemon off;"]
 `;
 
@@ -485,7 +746,16 @@ const SENTRY_INIT = `import * as Sentry from "@sentry/react";
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
-  tracesSampleRate: 0.1,
+  environment: import.meta.env.MODE,
+  release: import.meta.env.VITE_APP_VERSION,
+  tracesSampleRate: import.meta.env.PROD ? 0.1 : 0,
+  replaysOnErrorSampleRate: 1.0,
+  integrations: [Sentry.replayIntegration()],
+  beforeSend(event) {
+    // Drop noisy network errors from browser extensions
+    if (event.exception?.values?.[0]?.value?.includes("Extension context")) return null;
+    return event;
+  },
 });
 `;
 
@@ -569,7 +839,9 @@ const SENTRY_INIT_NEXTJS = `import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
-  tracesSampleRate: 0.1,
+  environment: process.env.NODE_ENV,
+  release: process.env.NEXT_PUBLIC_APP_VERSION,
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0,
 });
 `;
 
@@ -577,6 +849,113 @@ const SENTRY_INSTRUMENTATION_NEXTJS = `export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./src/lib/sentry");
   }
+}
+`;
+
+const SENTRY_ERROR_BOUNDARY_TSX = `import * as Sentry from "@sentry/react";
+import type { ReactNode } from "react";
+
+export function SentryErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Sentry.ErrorBoundary
+      fallback={({ error, resetError }) => (
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Something went wrong</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : "An unexpected error occurred"}
+            </p>
+            <button
+              className="mt-4 text-sm text-primary underline"
+              onClick={resetError}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      )}
+    >
+      {children}
+    </Sentry.ErrorBoundary>
+  );
+}
+`;
+
+const SENTRY_INIT_PYTHON = `import sentry_sdk
+import os
+
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN"),
+    environment=os.environ.get("ENVIRONMENT", "production"),
+    release=os.environ.get("APP_VERSION"),
+    traces_sample_rate=0.1 if os.environ.get("ENVIRONMENT") == "production" else 0.0,
+)
+`;
+
+const SENTRY_INIT_RUBY = `Sentry.init do |config|
+  config.dsn = ENV["SENTRY_DSN"]
+  config.environment = ENV.fetch("RAILS_ENV", "production")
+  config.release = ENV["APP_VERSION"]
+  config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+  config.traces_sample_rate = ENV["RAILS_ENV"] == "production" ? 0.1 : 0.0
+end
+`;
+
+const SENTRY_INIT_GO = `package sentry
+
+import (
+\t"os"
+
+\t"github.com/getsentry/sentry-go"
+)
+
+func Init() error {
+\treturn sentry.Init(sentry.ClientOptions{
+\t\tDsn:              os.Getenv("SENTRY_DSN"),
+\t\tEnvironment:      os.Getenv("APP_ENV"),
+\t\tRelease:          os.Getenv("APP_VERSION"),
+\t\tTracesSampleRate: 0.1,
+\t})
+}
+`;
+
+const SENTRY_INIT_JAVA = `# Add to src/main/resources/application.properties
+sentry.dsn=\${SENTRY_DSN}
+sentry.traces-sample-rate=0.1
+sentry.environment=\${SPRING_PROFILES_ACTIVE:production}
+`;
+
+const SENTRY_INIT_PHP = `<?php
+
+return [
+    'dsn' => env('SENTRY_LARAVEL_DSN', env('SENTRY_DSN')),
+    'environment' => env('APP_ENV', 'production'),
+    'release' => env('APP_VERSION'),
+    'traces_sample_rate' => env('APP_ENV') === 'production' ? 0.1 : 0.0,
+    'breadcrumbs' => [
+        'logs' => true,
+        'sql_queries' => true,
+        'queue_info' => true,
+    ],
+];
+`;
+
+const SENTRY_INIT_RUST = `use std::env;
+
+pub fn init() -> sentry::ClientInitGuard {
+    sentry::init((
+        env::var("SENTRY_DSN").unwrap_or_default(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            environment: Some(
+                env::var("APP_ENV")
+                    .unwrap_or_else(|_| "production".into())
+                    .into(),
+            ),
+            traces_sample_rate: 0.1,
+            ..Default::default()
+        },
+    ))
 }
 `;
 
@@ -604,6 +983,9 @@ const REACT_VITE_ENTRY_CANDIDATES = [
   "src/index.ts",
   "main.tsx",
   "main.ts",
+  // TanStack Start — router.tsx runs on both client and server
+  "src/router.tsx",
+  "src/router.ts",
 ];
 
 async function detectEntryPoint(
@@ -634,25 +1016,80 @@ function dockerfile(framework: string): string {
 
 // ─── Repo scanning helpers ────────────────────────────────────────────────────
 
+const BACKEND_DEPS = ["express", "fastify", "koa", "hapi", "@hapi/hapi", "nestjs", "@nestjs/core", "restify", "polka", "h3"];
+
 interface PackageJsonMeta {
   scripts: Record<string, string>;
   nodeVersion: string;
+  hasBackend: boolean;
 }
 
 async function fetchPackageJsonMeta(token: string, fullName: string): Promise<PackageJsonMeta> {
   const content = await fetchFileContent(token, fullName, "package.json");
-  if (!content) return { scripts: {}, nodeVersion: "20" };
+  if (!content) return { scripts: {}, nodeVersion: "20", hasBackend: false };
   try {
     const pkg = JSON.parse(content) as {
       scripts?: Record<string, string>;
       engines?: { node?: string };
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
     };
     const rawNode = pkg.engines?.node ?? "20";
     const nodeVersion = rawNode.match(/\d+/)?.[0] ?? "20";
-    return { scripts: pkg.scripts ?? {}, nodeVersion };
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+    const hasBackend = BACKEND_DEPS.some((d) => d in allDeps);
+    return { scripts: pkg.scripts ?? {}, nodeVersion, hasBackend };
   } catch {
-    return { scripts: {}, nodeVersion: "20" };
+    return { scripts: {}, nodeVersion: "20", hasBackend: false };
   }
+}
+
+function nginxConf(hasBackend: boolean): string {
+  const proxyBlock = hasBackend
+    ? `
+  # Proxy API requests to the backend service
+  location /api/ {
+    proxy_pass http://backend:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 60s;
+    client_max_body_size 50M;
+  }
+`
+    : "";
+
+  return `server {
+  listen 80;
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # Security headers
+  add_header X-Frame-Options "SAMEORIGIN";
+  add_header X-Content-Type-Options "nosniff";
+  add_header Referrer-Policy "strict-origin-when-cross-origin";
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=()";
+
+  # Compression
+  gzip on;
+  gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+  # Long-term cache for hashed static assets
+  location ~* \\.(js|css|png|jpg|svg|ico|woff2)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+  }
+${proxyBlock}
+  # SPA fallback — all routes served by index.html
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+}
+`;
 }
 
 async function detectPackageManager(
@@ -726,9 +1163,32 @@ const FIX_LABEL: Record<string, string> = {
   helmet: "Helmet security headers",
   "rate-limit": "rate limiting",
   logger: "Winston logger",
+  "ci-ai": "AI-tailored GitHub Actions CI",
+  "readme-ai": "AI-written setup docs",
+  "env-example-ai": "AI-scanned .env.example",
   "vitest-ai": "AI-generated Vitest tests",
   "playwright-ai": "AI-generated Playwright tests",
   "api-tests": "AI-generated API tests",
+};
+
+const FIX_WHY: Record<string, string> = {
+  monitoring: "You'll know about crashes before your users do. Every unhandled error gets captured with a full stack trace, environment, and release — so you can ship with confidence.",
+  vitest: "Every push is now verified. Fast unit tests run in CI so bugs don't reach main.",
+  "vitest-ai": "AI-written tests cover your real components and logic — not boilerplate.",
+  playwright: "Broken user flows get caught before users hit them.",
+  "playwright-ai": "AI-written E2E tests cover your actual routes and interactions.",
+  "github-actions": "Every push now runs lint, typecheck, and tests automatically.",
+  "ci-ai": "CI workflow tailored to your framework, package manager, and scripts.",
+  "readme-ai": "Setup docs written for your actual repo name, stack, and scripts.",
+  "env-example-ai": "Env vars scanned from your codebase with descriptions for each.",
+  eslint: "Catches bugs and enforces consistent style across the codebase.",
+  dockerfile: "Reproducible builds everywhere — local, CI, and production.",
+  "env-example": "New contributors can run the app without asking what env vars are needed.",
+  readme: "Anyone can clone and run the project in minutes.",
+  helmet: "Secure HTTP headers protect against XSS, clickjacking, and other common attacks.",
+  "rate-limit": "Brute-force and denial-of-service attacks are now blocked at the edge.",
+  logger: "Production issues are debuggable. Every request is logged with method, status, and latency.",
+  "api-tests": "Your API endpoints are verified — regressions get caught before deploy.",
 };
 
 // ─── File collector ───────────────────────────────────────────────────────────
@@ -771,7 +1231,7 @@ export async function collectFixFiles(
 
   // Pre-fetch package metadata + package manager once for all fixes that need them
   const needsPkgMeta = fixIds.some((id) =>
-    ["github-actions", "readme", "env-example"].includes(id),
+    ["github-actions", "ci-ai", "readme", "readme-ai", "env-example", "env-example-ai"].includes(id),
   );
   const [pkgMeta, pm] = needsPkgMeta
     ? await Promise.all([
@@ -793,7 +1253,7 @@ export async function collectFixFiles(
           "test:ui": "vitest --ui",
           "test:coverage": "vitest run --coverage",
         });
-        Object.assign(pkgMods.devDeps, { vitest: "^1.6.0", "@vitejs/plugin-react": "^4.3.0" });
+        Object.assign(pkgMods.devDeps, { vitest: "^3.0.0", "@vitejs/plugin-react": "^5.0.0" });
         break;
 
       case "playwright":
@@ -828,6 +1288,21 @@ export async function collectFixFiles(
         );
         break;
       }
+
+      case "ci-ai": {
+        const nvmrc = await fetchFileContent(token, fullName, ".nvmrc");
+        const nodeVersion = nvmrc
+          ? (nvmrc.trim().replace(/^v/, "").match(/\d+/)?.[0] ?? pkgMeta.nodeVersion)
+          : pkgMeta.nodeVersion;
+        const hasTypecheck = "typecheck" in pkgMeta.scripts;
+        if (!hasTypecheck) pkgMods.scripts.typecheck = "tsc --noEmit";
+        note("ci-ai", "verified", `AI CI workflow · Node ${nodeVersion}`);
+        break;
+      }
+
+      case "readme-ai":
+      case "env-example-ai":
+        break;
 
       case "eslint":
         add("eslint.config.js", ESLINT_CONFIG);
@@ -873,10 +1348,11 @@ export async function collectFixFiles(
             add("next.config.ts", NEXT_CONFIG_STANDALONE);
             note("dockerfile", "verified", `next.config.ts created with output: "standalone"`);
           }
+        } else if (framework === "Vite" || framework === "React") {
+          add("nginx.conf", nginxConf(pkgMeta.hasBackend));
+          note("dockerfile", "verified", `nginx Dockerfile added${pkgMeta.hasBackend ? " with /api/ proxy" : ""}`);
         } else {
-          const variant =
-            framework === "Vite" || framework === "React" ? "nginx static" : "Node.js server";
-          note("dockerfile", "verified", `${variant} Dockerfile added`);
+          note("dockerfile", "verified", "Node.js server Dockerfile added");
         }
         break;
       }
@@ -897,8 +1373,22 @@ export async function collectFixFiles(
         if (framework === "Next.js") {
           add("src/lib/sentry.ts", SENTRY_INIT_NEXTJS);
           Object.assign(pkgMods.deps, { "@sentry/nextjs": "^8.0.0" });
+        } else if (framework === "Python") {
+          add("src/sentry.py", SENTRY_INIT_PYTHON);
+        } else if (framework === "Ruby") {
+          add("config/initializers/sentry.rb", SENTRY_INIT_RUBY);
+        } else if (framework === "Go") {
+          add("internal/sentry/sentry.go", SENTRY_INIT_GO);
+        } else if (framework === "Java") {
+          add("sentry.properties", SENTRY_INIT_JAVA);
+        } else if (framework === "PHP") {
+          add("config/sentry.php", SENTRY_INIT_PHP);
+        } else if (framework === "Rust") {
+          add("src/sentry.rs", SENTRY_INIT_RUST);
         } else {
+          // Vite / React / Express / unknown JS
           add("src/lib/sentry.ts", SENTRY_INIT);
+          add("src/lib/sentry-error-boundary.tsx", SENTRY_ERROR_BOUNDARY_TSX);
           Object.assign(pkgMods.deps, { "@sentry/react": "^8.0.0" });
         }
         break;
@@ -922,8 +1412,8 @@ export async function collectFixFiles(
       case "vitest-ai": {
         const isReact = framework !== "Express" && framework !== "unknown";
         Object.assign(pkgMods.devDeps, {
-          vitest: "^1.6.0",
-          ...(isReact ? { "@vitejs/plugin-react": "^4.3.0" } : {}),
+          vitest: "^3.0.0",
+          ...(isReact ? { "@vitejs/plugin-react": "^5.0.0" } : {}),
         });
         Object.assign(pkgMods.scripts, { test: "vitest" });
         if (!fixIds.includes("vitest")) add("vitest.config.ts", vitestConfig(framework));
@@ -932,6 +1422,8 @@ export async function collectFixFiles(
 
       case "playwright-ai":
         Object.assign(pkgMods.devDeps, { "@playwright/test": "^1.47.0" });
+        if (!fixIds.includes("playwright")) add("playwright.config.ts", PLAYWRIGHT_CONFIG);
+        gitignoreAppends.push("/test-results/", "/playwright-report/", "/playwright/.cache/");
         break;
 
       case "api-tests":
@@ -940,7 +1432,7 @@ export async function collectFixFiles(
     }
   }
 
-  const needsEnvExample = fixIds.includes("env-example");
+  const needsEnvExample = fixIds.includes("env-example") && !fixIds.includes("env-example-ai");
   const detectedEnvVars = needsEnvExample ? await detectEnvVars(token, fullName) : [];
 
   // .env.example — scan repo for actual env vars, fall back to generic template
@@ -952,9 +1444,60 @@ export async function collectFixFiles(
     add(".env.example", lines.join("\n") + "\n");
   }
 
+  // Sentry — patch dependency manifests and .env.example for non-JS languages
+  if (fixIds.includes("monitoring")) {
+    const sentryDsnVar =
+      framework === "Next.js" ? "SENTRY_DSN" :
+      framework === "Vite" || framework === "React" ? "VITE_SENTRY_DSN" :
+      "SENTRY_DSN";
+
+    // Append DSN key to .env.example if it exists (and we haven't already added it)
+    if (!needsEnvExample) {
+      const existingEnv = await fetchFileContent(token, fullName, ".env.example").catch(() => null);
+      if (existingEnv && !existingEnv.includes("SENTRY")) {
+        add(".env.example", existingEnv.trimEnd() + `\n${sentryDsnVar}=\n`);
+      }
+    }
+
+    // Patch language-specific dependency manifests
+    if (framework === "Python") {
+      const req = await fetchFileContent(token, fullName, "requirements.txt").catch(() => null);
+      if (req && !req.includes("sentry-sdk")) {
+        add("requirements.txt", req.trimEnd() + "\nsentry-sdk\n");
+      } else if (!req) {
+        add("requirements.txt", "sentry-sdk\n");
+      }
+    } else if (framework === "Ruby") {
+      const gemfile = await fetchFileContent(token, fullName, "Gemfile").catch(() => null);
+      if (gemfile && !gemfile.includes("sentry-ruby")) {
+        add("Gemfile", gemfile.trimEnd() + '\ngem "sentry-ruby"\ngem "sentry-rails"\n');
+      }
+    } else if (framework === "Rust") {
+      const cargo = await fetchFileContent(token, fullName, "Cargo.toml").catch(() => null);
+      if (cargo && !cargo.includes("sentry")) {
+        const patched = cargo.replace(
+          /(\[dependencies\][^\[]*)/,
+          '$1sentry = { version = "0.34", features = ["debug-images"] }\n',
+        );
+        if (patched !== cargo) add("Cargo.toml", patched);
+      }
+    } else if (framework === "PHP") {
+      const composer = await fetchFileContent(token, fullName, "composer.json").catch(() => null);
+      if (composer && !composer.includes("sentry/sentry")) {
+        try {
+          const obj = JSON.parse(composer) as Record<string, unknown>;
+          const require = (obj["require"] as Record<string, string> | undefined) ?? {};
+          require["sentry/sentry-laravel"] = "^4.0";
+          obj["require"] = require;
+          add("composer.json", JSON.stringify(obj, null, 4) + "\n");
+        } catch { /* leave unchanged if parse fails */ }
+      }
+    }
+  }
+
   // README — repo-specific setup docs (package manager, scripts, env vars)
-  const needsReadme = fixIds.includes("readme");
-  const needsEnvOnlyReadme = needsEnvExample && !needsReadme;
+  const needsReadme = fixIds.includes("readme") && !fixIds.includes("readme-ai");
+  const needsEnvOnlyReadme = needsEnvExample && !needsReadme && !fixIds.includes("readme-ai");
   if (needsReadme || needsEnvOnlyReadme) {
     const envVars = needsEnvExample ? detectedEnvVars : [];
 
@@ -1011,6 +1554,18 @@ export async function collectFixFiles(
       // Next.js 13.4+: instrumentation.ts registers on startup, no entry patching needed
       add("instrumentation.ts", SENTRY_INSTRUMENTATION_NEXTJS);
       note("monitoring", "verified", "instrumentation.ts created (Next.js App Router)");
+    } else if (framework === "Python") {
+      note("monitoring", "verified", "src/sentry.py created — import it at the top of your app entry file (e.g. manage.py or app.py)");
+    } else if (framework === "Ruby") {
+      note("monitoring", "verified", "config/initializers/sentry.rb created — Rails auto-loads initializers on boot");
+    } else if (framework === "Go") {
+      note("monitoring", "verified", "internal/sentry/sentry.go created — call sentry.Init() in your main() before starting the server");
+    } else if (framework === "Java") {
+      note("monitoring", "verified", "sentry.properties created — add io.sentry:sentry-spring-boot-starter-jakarta to your pom.xml or build.gradle");
+    } else if (framework === "PHP") {
+      note("monitoring", "verified", "config/sentry.php created — add sentry/sentry-laravel to composer.json and set SENTRY_LARAVEL_DSN in .env");
+    } else if (framework === "Rust") {
+      note("monitoring", "verified", "src/sentry.rs created — call sentry::init() at the top of main() and add sentry = \"0.34\" to Cargo.toml");
     } else {
       const entryPoint = await detectEntryPoint(token, fullName, framework);
       if (entryPoint) {
@@ -1101,28 +1656,66 @@ export async function createPRFromFiles(
   fixIds: string[],
   files: { path: string; content: string }[],
   verificationNotes?: VerificationNote[],
+  framework?: string,
 ): Promise<{ prNumber: number; prUrl: string }> {
   if (!files.length) throw new Error("No files to commit.");
 
+  const { assertGitHubRepoWriteAccess } = await import("./github.server");
+  await assertGitHubRepoWriteAccess(token, repoFullName);
+
+  const repoMeta = await ghGet<{ full_name: string; default_branch: string }>(
+    token,
+    `/repos/${repoFullName}`,
+  );
+  const fullName = repoMeta.full_name;
+  const baseBranch = repoMeta.default_branch || defaultBranch;
+
   const refData = await ghGet<{ object: { sha: string } }>(
     token,
-    `/repos/${repoFullName}/git/ref/heads/${defaultBranch}`,
+    `/repos/${fullName}/git/ref/heads/${baseBranch}`,
   );
   const baseSha = refData.object.sha;
 
   const commitData = await ghGet<{ tree: { sha: string } }>(
     token,
-    `/repos/${repoFullName}/git/commits/${baseSha}`,
+    `/repos/${fullName}/git/commits/${baseSha}`,
   );
   const baseTreeSha = commitData.tree.sha;
 
-  const newTreeSha = await createTree(token, repoFullName, baseTreeSha, files);
-
   const labels = fixIds.map((id) => FIX_LABEL[id] ?? id);
   const commitMessage = `chore: add production setup\n\nAdded: ${labels.join(", ")}\n\nGenerated by LaunchReadyy`;
-  const newCommitSha = await createCommit(token, repoFullName, commitMessage, newTreeSha, baseSha);
 
-  await createOrUpdateBranch(token, repoFullName, branchName, newCommitSha);
+  const normalizedFiles = files.map((f) => ({
+    path: f.path.replace(/^\/+/, ""),
+    content: f.content,
+  }));
+
+  try {
+    const newTreeSha = await createTree(token, fullName, baseTreeSha, normalizedFiles);
+    const newCommitSha = await createCommit(
+      token,
+      fullName,
+      commitMessage,
+      newTreeSha,
+      baseSha,
+    );
+    await createOrUpdateBranch(token, fullName, branchName, newCommitSha);
+  } catch (treesErr) {
+    await ensureBranch(token, fullName, branchName, baseSha);
+    try {
+      await commitFilesViaContentsApi(
+        token,
+        fullName,
+        branchName,
+        normalizedFiles,
+        commitMessage,
+      );
+    } catch (contentsErr) {
+      const treesMsg = treesErr instanceof Error ? treesErr.message : String(treesErr);
+      const contentsMsg = contentsErr instanceof Error ? contentsErr.message : String(contentsErr);
+      throw new Error(`Git Trees API failed: ${treesMsg}\nContents API fallback failed: ${contentsMsg}`);
+    }
+  }
 
   const titleSuffix =
     fixIds.length > 3
@@ -1147,15 +1740,35 @@ export async function createPRFromFiles(
         ]
       : [];
 
+  const whyLines = fixIds
+    .filter((id) => FIX_WHY[id])
+    .map((id) => `- **${FIX_LABEL[id] ?? id}:** ${FIX_WHY[id]}`);
+
+  const setupSteps: string[] = [];
+  if (fixIds.includes("monitoring")) {
+    const dsnVar = framework === "Vite" || framework === "React" ? "VITE_SENTRY_DSN" : "SENTRY_DSN";
+    setupSteps.push(
+      `### ⚠️ Action required: activate Sentry`,
+      ``,
+      `1. Sign up for a free account at [sentry.io](https://sentry.io)`,
+      `2. Create a new project and copy your DSN`,
+      `3. Add it to your environment variables:`,
+      `   \`\`\``,
+      `   ${dsnVar}=https://your-dsn@sentry.io/your-project-id`,
+      `   \`\`\``,
+      `4. Deploy — Sentry will start capturing errors immediately`,
+      ``,
+    );
+  }
+
   const prBody = [
     `## Production setup added by LaunchReadyy`,
     ``,
-    `**Fixes applied:** ${labels.join(", ")}`,
+    ...whyLines,
     ``,
-    `**Files changed:** ${files.length} file${files.length !== 1 ? "s" : ""}`,
-    ``,
+    ...setupSteps,
     ...verificationSection,
-    `<details><summary>Files changed</summary>`,
+    `<details><summary>Files changed (${files.length})</summary>`,
     ``,
     files.map((f) => `- \`${f.path}\``).join("\n"),
     ``,
@@ -1167,9 +1780,9 @@ export async function createPRFromFiles(
 
   const pr = await openPullRequest(
     token,
-    repoFullName,
+    fullName,
     branchName,
-    defaultBranch,
+    baseBranch,
     `chore: add production setup (${titleSuffix})`,
     prBody,
   );
@@ -1196,6 +1809,7 @@ export async function executeFixJob(
     fixIds,
     files,
     verificationNotes,
+    opts?.framework,
   );
 }
 

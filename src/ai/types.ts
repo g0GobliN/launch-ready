@@ -4,13 +4,15 @@ export type TaskType =
   | "vitest_generation"
   | "playwright_generation"
   | "api_test_generation"
-  | "readme_improvements";
+  | "readme_improvements"
+  | "ci_generation"
+  | "env_example_generation";
 
 export type UserPlan = "free" | "pro" | "enterprise";
 
 export interface AIProvider {
-  generate(prompt: string, maxTokens?: number, repoUrl?: string): Promise<string>;
-  analyze(prompt: string, maxTokens?: number, repoUrl?: string): Promise<string>;
+  generate(prompt: string, maxTokens?: number, repoUrl?: string, model?: string): Promise<string>;
+  analyze(prompt: string, maxTokens?: number, repoUrl?: string, model?: string): Promise<string>;
 }
 
 export interface RouterContext {

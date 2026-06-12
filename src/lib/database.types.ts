@@ -84,6 +84,7 @@ export type Database = {
           credits_cost: number;
           owner_login: string | null;
           ai_files: string | null;
+          priority: number;
           created_at: string;
           updated_at: string;
         };
@@ -103,6 +104,7 @@ export type Database = {
           credits_cost?: number;
           owner_login?: string | null;
           ai_files?: string | null;
+          priority?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -127,6 +129,8 @@ export type Database = {
           email_unsubscribed: boolean;
           email: string | null;
           subscription_cancel_at: string | null;
+          trial_credits_total: number;
+          trial_credits_used: number;
         };
         Insert: {
           github_login: string;
@@ -145,6 +149,8 @@ export type Database = {
           email_unsubscribed?: boolean;
           email?: string | null;
           subscription_cancel_at?: string | null;
+          trial_credits_total?: number;
+          trial_credits_used?: number;
         };
         Update: Partial<Database["public"]["Tables"]["user_credits"]["Insert"]>;
         Relationships: [];
@@ -197,6 +203,7 @@ export type Database = {
           scan_id: string;
           fix_ids: string;
           result: string;
+          content_hash: string | null;
           created_at: string;
         };
         Insert: {
@@ -204,6 +211,7 @@ export type Database = {
           scan_id: string;
           fix_ids: string;
           result: string;
+          content_hash?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ai_test_cache"]["Insert"]>;

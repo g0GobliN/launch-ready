@@ -9,11 +9,11 @@ const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 export class DeepSeekProvider implements AIProvider {
   constructor(private readonly apiKey: string) {}
 
-  async generate(prompt: string, maxTokens = 2048): Promise<string> {
+  async generate(prompt: string, maxTokens = 2048, _repoUrl?: string, _model?: string): Promise<string> {
     return this.call(prompt, maxTokens);
   }
 
-  async analyze(prompt: string, maxTokens = 1024): Promise<string> {
+  async analyze(prompt: string, maxTokens = 1024, _repoUrl?: string, _model?: string): Promise<string> {
     return this.call(prompt, maxTokens);
   }
 
