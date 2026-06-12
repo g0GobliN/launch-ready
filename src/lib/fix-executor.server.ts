@@ -560,9 +560,7 @@ function patchNextConfigStandalone(content: string): string | null {
   if (insertAt === -1) return null;
   const braceIdx = content.indexOf("{", insertAt);
   if (braceIdx === -1) return null;
-  return (
-    content.slice(0, braceIdx + 1) + '\n  output: "standalone",' + content.slice(braceIdx + 1)
-  );
+  return content.slice(0, braceIdx + 1) + '\n  output: "standalone",' + content.slice(braceIdx + 1);
 }
 
 // ─── Sentry templates ─────────────────────────────────────────────────────────
@@ -772,7 +770,9 @@ export async function collectFixFiles(
     verificationNotes.push({ fixId, status, note: text });
 
   // Pre-fetch package metadata + package manager once for all fixes that need them
-  const needsPkgMeta = fixIds.some((id) => ["github-actions", "readme", "env-example"].includes(id));
+  const needsPkgMeta = fixIds.some((id) =>
+    ["github-actions", "readme", "env-example"].includes(id),
+  );
   const [pkgMeta, pm] = needsPkgMeta
     ? await Promise.all([
         fetchPackageJsonMeta(token, fullName),
@@ -816,7 +816,11 @@ export async function collectFixFiles(
 
         add(".github/workflows/ci.yml", ciWorkflow(nodeVersion));
 
-        const nodeSource = nvmrc ? ".nvmrc" : pkgMeta.nodeVersion !== "20" ? "engines.node" : "default";
+        const nodeSource = nvmrc
+          ? ".nvmrc"
+          : pkgMeta.nodeVersion !== "20"
+            ? "engines.node"
+            : "default";
         note(
           "github-actions",
           "verified",

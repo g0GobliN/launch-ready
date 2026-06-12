@@ -43,19 +43,17 @@ function envVarList(envVars: string[]): string {
 export function buildReadmeSections(input: ReadmeSetupInput): string[] {
   const sections: string[] = [];
   const install = pmInstall(input.packageManager);
-  const devCmd = input.scripts.dev ? scriptCommand(input.packageManager, "dev") : defaultDevCommand(input.packageManager);
+  const devCmd = input.scripts.dev
+    ? scriptCommand(input.packageManager, "dev")
+    : defaultDevCommand(input.packageManager);
 
   sections.push(
-    [
-      "## Prerequisites",
-      "",
-      `- Node.js ${input.nodeVersion}+`,
-      `- ${input.packageManager}`,
-    ].join("\n"),
+    ["## Prerequisites", "", `- Node.js ${input.nodeVersion}+`, `- ${input.packageManager}`].join(
+      "\n",
+    ),
   );
 
-  const stackLine =
-    input.framework !== "unknown" ? `**Stack:** ${input.framework}\n\n` : "";
+  const stackLine = input.framework !== "unknown" ? `**Stack:** ${input.framework}\n\n` : "";
 
   let step = 1;
   const steps: string[] = [
@@ -79,7 +77,9 @@ export function buildReadmeSections(input: ReadmeSetupInput): string[] {
       "",
       "| Script | Command |",
       "| --- | --- |",
-      ...scriptRows.map((key) => `| \`${key}\` | \`${scriptCommand(input.packageManager, key)}\` |`),
+      ...scriptRows.map(
+        (key) => `| \`${key}\` | \`${scriptCommand(input.packageManager, key)}\` |`,
+      ),
     ].join("\n");
     sections.push(table);
   }

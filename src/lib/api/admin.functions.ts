@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { estimateAiCost, planRevenuePerCredit, activeAiProvider, aiCostPerCredit } from "../ai-economics.server";
+import {
+  estimateAiCost,
+  planRevenuePerCredit,
+  activeAiProvider,
+  aiCostPerCredit,
+} from "../ai-economics.server";
 import { isAdminUser, isBootstrapAdmin } from "../admin.server";
 import { PLANS, type PlanId } from "../plans";
 
@@ -40,13 +45,10 @@ export const loadAdminOverviewFn = createServerFn({ method: "GET" })
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
     const [{ data: users }, { data: allScans }, { data: allJobs }] = await Promise.all([
-        db.from("user_credits").select("plan, created_at"),
-        db.from("scans").select("id, created_at").gte("created_at", since),
-        db
-          .from("fix_requests")
-          .select("id, status, created_at")
-          .gte("created_at", since),
-      ]);
+      db.from("user_credits").select("plan, created_at"),
+      db.from("scans").select("id, created_at").gte("created_at", since),
+      db.from("fix_requests").select("id, status, created_at").gte("created_at", since),
+    ]);
 
     const days = lastNDays(data.days);
     const signupsByDay = days.map(({ date, label }) => ({
@@ -184,7 +186,7 @@ export const loadAdminUsersFn = createServerFn({ method: "GET" })
 
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     const logins = (users ?? []).map((u) => u.github_login);
-    let usageByLogin: Record<string, number> = {};
+    const usageByLogin: Record<string, number> = {};
     if (logins.length > 0) {
       const { data: txns } = await db
         .from("credit_transactions")
@@ -193,8 +195,7 @@ export const loadAdminUsersFn = createServerFn({ method: "GET" })
         .gte("created_at", monthStart)
         .in("github_login", logins);
       for (const t of txns ?? []) {
-        usageByLogin[t.github_login] =
-          (usageByLogin[t.github_login] ?? 0) + Math.abs(t.amount);
+        usageByLogin[t.github_login] = (usageByLogin[t.github_login] ?? 0) + Math.abs(t.amount);
       }
     }
 
@@ -249,9 +250,7 @@ export const loadAdminJobsFn = createServerFn({ method: "GET" })
 function monthsSinceFirstSignup(earliestCreatedAt: string | null, now = new Date()): number {
   if (!earliestCreatedAt) return 1;
   const first = new Date(earliestCreatedAt);
-  return (
-    (now.getFullYear() - first.getFullYear()) * 12 + (now.getMonth() - first.getMonth()) + 1
-  );
+  return (now.getFullYear() - first.getFullYear()) * 12 + (now.getMonth() - first.getMonth()) + 1;
 }
 
 export const loadAdminRevenueFn = createServerFn({ method: "GET" })
@@ -293,10 +292,7 @@ export const loadAdminRevenueFn = createServerFn({ method: "GET" })
 
     const earliestCreatedAt =
       users && users.length > 0
-        ? users.reduce(
-            (min, u) => (u.created_at < min ? u.created_at : min),
-            users[0].created_at,
-          )
+        ? users.reduce((min, u) => (u.created_at < min ? u.created_at : min), users[0].created_at)
         : null;
     const historyMonths = monthsSinceFirstSignup(earliestCreatedAt);
     const monthsToShow = Math.min(data.months, historyMonths);
