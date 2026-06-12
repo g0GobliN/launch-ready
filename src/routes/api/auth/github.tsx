@@ -1,9 +1,6 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { getGitHubOAuthUrl } from "@/lib/auth-oauth.server";
+import { createFileRoute } from "@tanstack/react-router";
+import { getGitHubOAuthUrlFn } from "@/lib/api/auth.functions";
 
 export const Route = createFileRoute("/api/auth/github")({
-  loader: async () => {
-    const url = await getGitHubOAuthUrl();
-    throw redirect({ href: url });
-  },
+  loader: () => getGitHubOAuthUrlFn(),
 });
